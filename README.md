@@ -1,4 +1,4 @@
-# HTML試用初始版本 更新日期2024/12/11(陳衍碩)
+# HTML試用初始版本 更新日期2025/6/1(陳衍碩)
 # 安裝包(大致上是這幾個)
 
 pip3 install google-generativeai gradio
