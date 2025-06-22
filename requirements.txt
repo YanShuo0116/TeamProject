@@ -1,0 +1,5 @@
+flask
+pyngrok
+google-generativeai
+gTTS
+Flask-Cors

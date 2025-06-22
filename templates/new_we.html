@@ -1,0 +1,322 @@
+<!doctype html>
+<html class="no-js" lang="zh-TW">
+<head>
+    <meta charset="utf-8">
+    <title>團隊介紹</title>
+    <meta name="description" content="團隊成員介紹">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link href="https://fonts.googleapis.com/css?family=Knewave" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="static/css/new_we.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+</head>
+
+<body data-spy="scroll" data-target=".navbar-collapse" class="dark-mode">
+    <!-- 載入動畫 -->
+    <div id="loading">
+        <div id="loading-center">
+            <div id="loading-center-absolute">
+                <div class="object" id="object_one"></div>
+                <div class="object" id="object_two"></div>
+                <div class="object" id="object_three"></div>
+                <div class="object" id="object_four"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="culmn">
+        <!-- 導航欄 -->
+        <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+            <div class="container">  
+                <a class="navbar-brand" href="/">
+                    <i class="fas fa-home"></i> 返回主頁
+                </a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#home">首頁</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#team">團隊成員</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#about">關於我們</a>
+                        </li>
+                      
+                        <li class="nav-item">
+                            <a href="#" id="theme-toggle" class="nav-link">
+                                <i class="fas fa-sun"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>   
+        </nav>
+
+        <!-- 首頁部分 -->
+        <section id="home" class="home">
+            <div id="particles-js"></div>
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <div class="home_text">
+                            <h1 class="team-title animate__animated animate__fadeInDown">我們的團隊</h1>
+                            <h4 class="team-subtitle animate__animated animate__fadeInUp">來認識我們出色的團隊成員吧！</h4>
+                            <br><br><br>
+                            <div class="scroll-indicator">
+                                <a class="mouse-scroll" href="#team"> 
+                                    <span class="mouse">
+                                        <span class="mouse-movement"></span>
+                                    </span>
+                                    <span class="mouse-message"></span> 
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 團隊成員部分 -->
+        <section id="team" class="team py-5">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="section-title text-center mb-5">
+                            <h2>團隊成員</h2>
+                            <div class="separator"></div>
+                            <p>認識我們優秀的團隊成員，各自擁有獨特的專長與特質</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 指導老師部分 -->
+                <div class="row justify-content-center mb-5">
+                    <div class="col-lg-4 col-md-6">
+                        <div class="team-member-card teacher-card">
+                            <div class="team-member-img">
+                                <img src="{{ url_for('static', filename='images/pro.png') }}" alt="徐武孝" />
+                                <div class="team-overlay">
+                                    <div class="team-social">
+                                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="team-member-info">
+                                <h3>徐武孝</h3>
+                                <span>指導教授</span>
+                                <p>專業指導與學術支持，為團隊提供寶貴建議。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 團隊成員部分 -->
+                <div class="row team-members">
+                    <!-- 成員 1：陳衍碩 -->
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="team-member-card">
+                            <div class="team-member-img">
+                                <img src="{{ url_for('static', filename='images/ys.jpg') }}" alt="陳衍碩" />
+                                <div class="team-overlay">
+                                    <div class="team-social">
+                                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                                        <a href="#"><i class="fab fa-twitter"></i></a>
+                                        <a href="#"><i class="fab fa-instagram"></i></a>
+                                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="team-member-info">
+                                <h3>陳衍碩</h3>
+                                <span>前端開發</span>
+                                <p>負責技術規劃與前後端開發，才剛學HTML、CSS和JavaScript。</p>
+                                <a href="https://yanshuo0116.github.io/Personal-resume/" class="btn view-profile">查看履歷</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 成員 2：楊博凱 -->
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="team-member-card">
+                            <div class="team-member-img">
+                                <img src="{{ url_for('static', filename='images/bk.jpg') }}" alt="楊博凱" />
+                                <div class="team-overlay">
+                                    <div class="team-social">
+                                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                                        <a href="#"><i class="fab fa-twitter"></i></a>
+                                        <a href="#"><i class="fab fa-instagram"></i></a>
+                                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="team-member-info">
+                                <h3>楊博凱</h3>
+                                <span>AI/機器學習工程師</span>
+                                <p>主要負責AI和機器學習，擁有深厚的數據分析能力。</p>
+                                <a href="#" class="btn view-profile">查看履歷</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 成員 3：蔡杰宏 -->
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="team-member-card">
+                            <div class="team-member-img">
+                                <img src="{{ url_for('static', filename='images/jh.jpg') }}" alt="蔡杰宏" />
+                                <div class="team-overlay">
+                                    <div class="team-social">
+                                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                                        <a href="#"><i class="fab fa-twitter"></i></a>
+                                        <a href="#"><i class="fab fa-instagram"></i></a>
+                                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="team-member-info">
+                                <h3>蔡杰宏</h3>
+                                <span>AI/機器學習工程師</span>
+                                <p>主要負責AI和機器學習，專注於調用各種模型。</p>
+                                <a href="#" class="btn view-profile">查看履歷</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 成員 4：蔡育誠 -->
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="team-member-card">
+                            <div class="team-member-img">
+                                <img src="{{ url_for('static', filename='images/yc.jpg') }}" alt="蔡育誠" />
+                                <div class="team-overlay">
+                                    <div class="team-social">
+                                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                                        <a href="#"><i class="fab fa-twitter"></i></a>
+                                        <a href="#"><i class="fab fa-instagram"></i></a>
+                                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="team-member-info">
+                                <h3>蔡育誠</h3>
+                                <span>全端開發工程師</span>
+                                <p>主要負責前後端，專注於系統架構設計。</p>
+                                <a href="#" class="btn view-profile">查看履歷</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 關於團隊部分 -->
+        <section id="about" class="about py-5">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="section-title text-center mb-5">
+                            <h2>關於我們</h2>
+                            <div class="separator"></div>
+                            <p>我們是一個充滿熱情與創意的團隊，致力於透過技術創造美好體驗</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="about-text">
+                            <h3>我們的故事</h3>
+                            <p>我們是一群來自銘傳大學資訊工程學系的學生，對於網頁開發和設計充滿熱情。透過共同學習和合作，我們不僅提升了技術能力，更建立了深厚的友誼。</p>
+                            <p>每位成員都擁有獨特的專長和背景，結合在一起形成了一支多元且富有創造力的團隊。我們相信透過團隊合作，能夠克服各種挑戰，創造出令人驚艷的作品。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="about-text">
+                            <h3>我們的願景</h3>
+                            <p>我們致力於運用所學的知識和技術，創造出具有高度使用者體驗的網頁和應用程式。我們不僅關注功能實現，更重視設計美感和使用者互動體驗。</p>
+                            <p>未來，我們希望能將課堂所學應用於實際專案中，為社會帶來更多創新的數位解決方案，同時不斷精進自己的專業能力。</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="team-skills">
+                            <h3 class="text-center mb-4">團隊技能</h3>
+                            <div class="separator"></div>
+                            
+                            <div class="row mt-4">
+                                <div class="col-md-6 mb-4">
+                                    <div class="skill-item">
+                                        <h4>前端開發</h4>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100">85%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <div class="skill-item">
+                                        <h4>後端開發</h4>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">75%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <div class="skill-item">
+                                        <h4>UI/UX 設計</h4>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">80%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <div class="skill-item">
+                                        <h4>數據分析</h4>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100">70%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 頁尾 -->
+        <footer id="footer" class="footer py-4">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <p class="mb-0">
+                            Made  by CHEN YAN SHUO-
+                            <a href="#">團隊</a> 
+                            2025. All Rights Reserved
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JS 檔案 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
+    <script src="static/js/new_we.js"></script>
+</body>
+</html> 

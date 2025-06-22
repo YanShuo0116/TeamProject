@@ -1,0 +1,170 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1e90ff, #2c2c2c);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    flex-direction: column;
+    overflow-x: hidden;
+    animation: backgroundAnimation 10s ease-in-out infinite;
+}
+
+h1 {
+    font-size: 3rem;
+    margin-bottom: 40px;
+    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    animation: neonPulse 2s infinite alternate, slideInFromTop 1s ease-out;
+}
+
+.team-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    justify-items: center;
+    opacity: 0;
+    animation: fadeIn 2s ease-out forwards;
+}
+
+.team-member {
+    width: 250px;
+    background-color: rgba(44, 44, 44, 0.8);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    animation: slideInFromBottom 1s ease-out forwards;
+}
+
+.team-member img {
+    width: 100%;
+    max-width: 200px;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    border: 4px solid #1e90ff;
+}
+
+.team-member img:hover {
+    transform: rotate(360deg) scale(1.1);
+}
+
+.team-member h2 {
+    font-size: 1.5rem;
+    margin-top: 15px;
+    background: linear-gradient(45deg, #1e90ff, #ffffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.team-member p {
+    font-size: 1rem;
+    margin-top: 10px;
+    color: #d0d0d0;
+}
+
+.teacher-card {
+    grid-column: span 4;
+    text-align: center;
+    background-color: rgba(44, 44, 44, 0.8);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    animation: slideInFromTop 1.2s ease-out forwards;
+}
+
+.description {
+    margin-top: 30px;
+    font-size: 1.2rem;
+    text-align: center;
+    max-width: 800px;
+    text-shadow: 0 0 5px rgba(255,255,255,0.3);
+    opacity: 0;
+    animation: fadeIn 2s ease-out forwards 1s;
+}
+
+.back-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    padding: 10px 15px;
+    background-color: #007BFF;
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.back-button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+@keyframes neonPulse {
+    0% { text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    100% { text-shadow: 0 0 20px rgba(30,144,255,0.8); }
+}
+
+@keyframes slideInFromTop {
+    0% { transform: translateY(-100px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInFromBottom {
+    0% { transform: translateY(100px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes backgroundAnimation {
+    0% { background: linear-gradient(135deg, #1e90ff, #2c2c2c); }
+    50% { background: linear-gradient(135deg, #2c2c2c, #1e90ff); }
+    100% { background: linear-gradient(135deg, #1e90ff, #2c2c2c); }
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* 螢幕小1200 3x2 排版 */
+@media screen and (max-width: 1200px) {
+    .team-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .teacher-card {
+        grid-column: span 3;
+    }
+}
+
+/* 手機板  保持直排 */
+@media screen and (max-width: 768px) {
+    .team-container {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .teacher-card {
+        grid-column: span 1;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    .back-button {
+        left: auto;
+        right: 20px;
+        bottom: 20px; 
+    }
+}

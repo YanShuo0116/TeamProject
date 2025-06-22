@@ -1,0 +1,436 @@
+:root {
+    --primary-color: #007BFF;
+    --secondary-color: #2c2c2c;
+    --text-color: #fff;
+    --border-color: #444;
+    --success-color: #2ECC71;
+    --error-color: #E74C3C;
+}
+
+/* 全局樣式 */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #1e1e1e;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    animation: fadeInBody 1s ease-in-out;
+}
+
+@keyframes fadeInBody {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.container {
+    width: 800px;
+    background-color: var(--secondary-color);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.8s ease-out;
+    position: relative;
+}
+
+@keyframes slideUp {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+h1, h3 {
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 20px;
+    animation: fadeInText 1.2s ease-in-out;
+}
+
+@keyframes fadeInText {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+p {
+    text-align: center;
+    justify-content: center;
+    animation: fadeInText 1.4s ease-in-out;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: #333;
+    color: #fff;
+    animation: fadeInInput 1.5s ease-in-out;
+}
+
+@keyframes fadeInInput {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    animation: fadeInButton 1.6s ease-in-out;
+}
+button:hover {
+    background-color: #0056b3;
+}
+@keyframes fadeInButton {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+
+.result-container {
+    margin-top: 20px;
+    animation: slideIn 0.8s ease-out;
+}
+
+@keyframes slideIn {
+    0% {
+        transform: translateX(100px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.result {
+    background-color: #333;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+}
+
+.audio-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+audio {
+    width: 100%;
+    max-width: 300px;
+}
+
+.accent-switch-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    animation: fadeInAccent 1.7s ease-in-out;
+}
+
+@keyframes fadeInAccent {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.accent-option {
+    padding: 10px 20px;
+    background-color: #444;
+    border: 1px solid var(--primary-color);
+    border-radius: 5px;
+    cursor: pointer;
+    color: #fff;
+    font-size: 16px;
+    margin: 0 10px;
+}
+
+.accent-option.active {
+    background-color: var(--primary-color);
+}
+
+.back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px 15px;
+    background-color: var(--primary-color);
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    animation: fadeInBackButton 1.8s ease-in-out;
+}
+
+@keyframes fadeInBackButton {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.back-button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+.spinner {
+   border: 4px solid #444;
+   border-top: 4px solid var(--primary-color);
+   border-radius: 50%;
+   width: 40px;
+   height: 40px;
+   animation: spin 1s linear infinite;
+   margin: 0 auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 進度條 */
+.progress-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    position: relative;
+    padding: 0 2rem;
+}
+
+.progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--border-color);
+    z-index: 1;
+}
+
+.step {
+    position: relative;
+    background-color: #444;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    z-index: 2;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #fff;
+}
+
+.step.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.step-content {
+    display: none;
+    background-color: #333;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    color: #fff;
+}
+
+.step-content.active {
+    display: block;
+}
+
+/* 主題網格 */
+.topic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.topic-btn {
+    padding: 1rem;
+    border: none;
+    background-color: #444;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    color: #fff;
+}
+
+.topic-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 輸入 */
+.topic-input {
+    margin-top: 1.5rem;
+}
+
+.topic-input input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    background-color: #333;
+    color: #fff;
+}
+
+/* 關鍵字 */
+.keywords-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.keyword-input {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.keyword-input input {
+    flex: 1;
+    padding: 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: #333;
+    color: #fff;
+}
+
+/* 主題句子 */
+.topic-sentence textarea {
+    width: 100%;
+    height: 150px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    resize: vertical;
+    margin-bottom: 1rem;
+    background-color: #333;
+    color: #fff;
+}
+
+/* 導航按鈕 */
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+/* 反饋 */
+.feedback-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+    display: none;
+}
+
+.feedback-container.success {
+    background-color: #D5F5E3;
+    color: var(--success-color);
+    display: block;
+}
+
+.feedback-container.error {
+    background-color: #FADBD8;
+    color: var(--error-color);
+    display: block;
+}
+.apply-btn {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    margin-left: 8px;
+    border-radius: 4px;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    border: none;
+    cursor: pointer;
+}
+
+.apply-btn:hover {
+    background-color: darken(var(--primary-color), 10%);
+}
+
+.topic-input span {
+    display: inline-flex;
+    align-items: center;
+}
+.topic-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.topic-input input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.keywords-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.keywords-container .keyword-input {
+    flex: 1;
+    min-width: 200px;
+}

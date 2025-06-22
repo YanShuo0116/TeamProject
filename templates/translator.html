@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI翻譯功能Beta版</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/translator.css') }}">
+</head>
+<body class="dark-mode">
+    <!-- 載入動畫 -->
+    <div class="loading-screen">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">專題功能實驗室</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/new_we"><i class="fas fa-users"></i> 關於我們</a>
+                    </li>
+                </ul>
+                <div class="theme-switch-wrapper">
+                    <label class="theme-switch" for="theme-toggle">
+                        <input type="checkbox" id="theme-toggle">
+                        <div class="slider round">
+                            <i class="fas fa-sun"></i>
+                            <i class="fas fa-moon"></i>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="main-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <h1 class="page-title">AI翻譯Beta</h1>
+                    <div class="translator-container">
+                        <form id="translate-form" method="POST" action="/translator">
+                            <div class="input-group">
+                                <input type="text" name="word" class="form-control" placeholder="請輸入英文單字" required>
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-language"></i> AI翻譯
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div class="accent-switch-container">
+                            <div class="accent-option active" id="americanAccent">
+                                <i class="fas fa-flag-usa"></i> 美式口音
+                            </div>
+                            <div class="accent-option" id="britishAccent">
+                                <i class="fas fa-flag-checkered"></i> 英式口音
+                            </div>
+                        </div>
+
+                        <div class="loading-spinner" id="loading" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>載入中...</p>
+                        </div>
+
+                        {% if translation %}
+                        <div class="result-container">
+                            {% if examples %}
+                            <!-- 調試信息 -->
+                            <div class="debug-info" style="display: none;">
+                                <p>Examples 原始內容: {{ examples }}</p>
+                                <p>分割後長度: {{ examples.split('\\n')|length }}</p>
+                                <p>索引 0: {{ examples.split('\\n')[0] }}</p>
+                                <p>索引 1: {{ examples.split('\\n')[1] }}</p>
+                                <p>索引 2: {{ examples.split('\\n')[2] if examples.split('\\n')|length > 2 else 'N/A' }}</p>
+                                <p>索引 3: {{ examples.split('\\n')[3] if examples.split('\\n')|length > 3 else 'N/A' }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="result-card">
+                                <h3><i class="fas fa-language"></i> 中文翻譯</h3>
+                                <div class="translation-content">
+                                    {% set translation_lines = translation.split('\n') %}
+                                    {% for line in translation_lines %}
+                                        {% if line.strip() %}
+                                            <div class="translation-item">
+                                                {% if line[0].isdigit() and '. ' in line[:5] %}
+                                                    <div class="translation-number">{{ line.split('. ')[0] }}</div>
+                                                    <div class="translation-text">{{ line.split('. ', 1)[1] }}</div>
+                                                {% else %}
+                                                    <div class="translation-text">{{ line }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div class="audio-container">
+                                    <audio controls>
+                                        <source src="/play-audio?type=word" type="audio/mpeg">
+                                        您的瀏覽器不支援音訊播放。
+                                    </audio>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <h3><i class="fas fa-book"></i> 相關詞語</h3>
+                                <div class="explanation-content">
+                                    {% set explanation_lines = explanation.split('\n') %}
+                                    {% for line in explanation_lines %}
+                                        {% if line.strip() %}
+                                            <div class="explanation-item">
+                                                {% if line[0:2] == '- ' %}
+                                                    <div class="explanation-bullet"><i class="fas fa-circle"></i></div>
+                                                    <div class="explanation-text">{{ line[2:] }}</div>
+                                                {% elif line[0].isdigit() and '. ' in line[:5] %}
+                                                    <div class="explanation-number">{{ line.split('. ')[0] }}</div>
+                                                    <div class="explanation-text">{{ line.split('. ', 1)[1] }}</div>
+                                                {% else %}
+                                                    <div class="explanation-text full-width">{{ line }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <h3><i class="fas fa-quote-right"></i> 單字例句</h3>
+                                <div class="examples-grid">
+                                    <div class="example">
+                                        <div class="example-header">
+                                            <i class="fas fa-quote-left"></i>
+                                            <span class="example-number">例句 1</span>
+                                        </div>
+                                        <p class="sentence">{{ examples.split('\n')[0] }}</p>
+                                        <p class="translation">{{ examples.split('\n')[1] }}</p>
+                                        <div class="audio-container">
+                                            <audio controls>
+                                                <source src="/play-audio?type=example1" type="audio/mpeg">
+                                                您的瀏覽器不支援音訊播放。
+                                            </audio>
+                                        </div>
+                                    </div>
+                                    <div class="example">
+                                        <div class="example-header">
+                                            <i class="fas fa-quote-left"></i>
+                                            <span class="example-number">例句 2</span>
+                                        </div>
+                                        <p class="sentence">{{ examples.split('\n')[3] }}</p>
+                                        <p class="translation">{{ examples.split('\n')[4] }}</p>
+                                        <div class="audio-container">
+                                            <audio controls>
+                                                <source src="/play-audio?type=example2" type="audio/mpeg">
+                                                您的瀏覽器不支援音訊播放。
+                                            </audio>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/translator.js') }}"></script>
+</body>
+</html>
