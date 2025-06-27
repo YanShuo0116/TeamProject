@@ -1,4 +1,4 @@
-# HTML試用初始版本 更新日期2025/6/1(陳衍碩)
+# HTML試用初始版本 更新日期2025/6/27(陳衍碩)
 # 安裝包(大致上是這幾個)
 
 pip3 install google-generativeai gradio
@@ -19,6 +19,7 @@ https://aistudio.google.com/welcome
 ngrok
 https://ngrok.com/
 
+PEXELS_API_KEY = "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr" # 替換為你的 Pexels API 金鑰(用我的就好)
 得到API後去app.py的"配置API"中替換"YOUR_API"
 
 # 執行cmd （source "/Volumes/我的Ｍ．２ssd 1/程式/my_project_v0.4/venv/bin/activate"）
