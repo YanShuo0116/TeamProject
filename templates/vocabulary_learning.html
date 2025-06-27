@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國小英文單字學習</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vocabulary_learning.css') }}">
+</head>
+<body class="dark-mode">
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">專題功能實驗室</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/vocabulary_learning/1200"><i class="fas fa-book-open"></i> 單字學習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/new_we"><i class="fas fa-users"></i> 關於我們</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="main-content">
+        <div class="container">
+            <h1 class="page-title">國小英文單字學習</h1>
+
+            <!-- 載入指示器 -->
+            <div id="loadingSpinner" class="loading-spinner">
+                <div class="spinner"></div>
+                <p>載入中...</p>
+            </div>
+
+            <!-- 主題選擇區塊 -->
+            <div id="themeSelectionSection" style="display: none;">
+                <h2 class="section-title">選擇主題</h2>
+                <div class="row" id="themeCardsContainer">
+                    <!-- 主題卡片將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+
+            <!-- 課次選擇區塊 -->
+            <div id="lessonSelectionSection" style="display: none;">
+                <button class="btn btn-secondary mb-3" id="backToThemesBtn"><i class="fas fa-arrow-left"></i> 返回主題</button>
+                <h2 class="section-title" id="currentThemeTitle"></h2>
+                <div class="row" id="lessonCardsContainer">
+                    <!-- 課次卡片將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+            
+            <!-- 單字卡片學習區塊 -->
+            <div id="wordCardSection" style="display: none;">
+                <button class="btn btn-secondary mb-3" id="backToLessonsBtn"><i class="fas fa-arrow-left"></i> 返回課次</button>
+                <h2 class="section-title" id="currentLessonTitle"></h2>
+                
+                <div class="word-card-container">
+                    <div class="word-card" id="wordCard">
+                        <div class="card-face card-front">
+                            <img src="" alt="Word Image" class="word-image" id="wordImage">
+                            <div class="word-text" id="englishWord"></div>
+                            <i class="fas fa-volume-up audio-icon" id="playAudio"></i>
+                        </div>
+                        <div class="card-face card-back">
+                            <div class="chinese-text" id="chineseWord"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn" id="prevWord"><i class="fas fa-arrow-left"></i> 上一個</button>
+                    <button class="control-btn" id="flipCard"><i class="fas fa-sync-alt"></i> 翻轉</button>
+                    <button class="control-btn" id="nextWord">下一個 <i class="fas fa-arrow-right"></i></button>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar">0/0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/vocabulary_learning.js') }}"></script>
+</body>
+</html>

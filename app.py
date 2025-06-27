@@ -1,5 +1,5 @@
 #語音小BUG 再次生成不會覆蓋
-from flask import Flask, request, render_template, send_file, jsonify
+from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for
 from pyngrok import ngrok
 import traceback
 import time
@@ -8,13 +8,20 @@ from gtts import gTTS
 import os
 import threading
 from flask_cors import CORS
+import pandas as pd
+from pexelsapi.pexels import Pexels
+import random
+
 #小小設定一下
 lock = threading.Lock()
 Us_uk="us"
 
 # 配置API                                                                            #README.MD裡有網址
-ngrok.set_auth_token("2pTLpO34I2oLaQ7JQZzXdItaVjg_6dHVsJfvwJsW8CMKJWGmc")     # 替換為你的 ngrok 金鑰!!!!!!!!!!!!
+ngrok.set_auth_token("2ywXahUIQ4BEQlBrwDT4DZ5B7xg_2B3tbiXUwG9YS9oqgcfxm")     # 替換為你的 ngrok 金鑰!!!!!!!!!!!!
 genai.configure(api_key='AIzaSyAWsd4l5j35qjTEnag79enNkMdYp64djDY')            # 替換為你的 gemini   金鑰!!!!!!!!!  
+
+PEXELS_API_KEY = "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr" # 替換為你的 Pexels API 金鑰
+pexels_api = Pexels(PEXELS_API_KEY)
 
 #選擇模型
 model = genai.GenerativeModel('gemini-1.5-flash')
@@ -24,6 +31,64 @@ app = Flask(__name__)
 CORS(app)
 #作文資料紀錄
 composition_data = {}
+
+def get_image_from_pexels(query):
+    try:
+        search_results = pexels_api.search_photos(query=query, per_page=1)
+        if search_results and search_results.get('photos'):
+            image_url = search_results['photos'][0]['src']['medium']
+            return image_url
+        else:
+            print(f"No image found for '{query}' on Pexels.")
+            return "https://via.placeholder.com/300?text=" + query.replace(" ", "+")
+    except Exception as e:
+        print(f"Error fetching image from Pexels for '{query}': {e}")
+        return "https://via.placeholder.com/300?text=" + query.replace(" ", "+")
+
+@app.route("/word_cards_all")
+def word_cards_all():
+    df = pd.read_csv('國小英文教材/基礎1200單字/國小1200基礎單字每日學習表.csv')
+    
+    word_data_structured = []
+    current_theme = ""
+    
+    for index, row in df.iterrows():
+        theme_group = str(row['主題分組'])
+        
+        if theme_group.startswith('主題'):
+            current_theme = theme_group.split('：')[0]
+            word_data_structured.append({
+                'type': 'theme',
+                'name': current_theme,
+                'days': []
+            })
+        
+        if '：' in theme_group:
+            day_name = theme_group.split('：')[-1]
+            flashcards = []
+            for i in range(1, 8):
+                english_col = f'英文{i}'
+                chinese_col = f'中文{i}'
+                
+                if english_col in row and pd.notna(row[english_col]):
+                    english_word = row[english_col]
+                    chinese_word = row[chinese_col] if chinese_col in row and pd.notna(row[chinese_col]) else ''
+                    
+                    image_url = get_image_from_pexels(english_word)
+                    
+                    flashcards.append({
+                        'english': english_word,
+                        'chinese': chinese_word,
+                        'image': image_url
+                    })
+            
+            if word_data_structured and word_data_structured[-1]['type'] == 'theme':
+                word_data_structured[-1]['days'].append({
+                    'name': day_name,
+                    'flashcards': flashcards
+                })
+
+    return render_template('word_cards_all.html', word_data=word_data_structured)
 def translate_word(word):
     try:
         # 1. 翻譯
@@ -54,20 +119,34 @@ We need to limit the number of participants in the event.
         example_response = model.generate_content(example_prompt).text
 
         return translation_response, explanation_response, example_response
-    except Exception as e:
+    except Exception:
         print(f"Error processing word '{word}': {traceback.format_exc()}")
         return "翻譯失敗", "相關詞語生成失敗", "例句生成失敗"
 
 
 
-def generate_audio_file(content, filename):
+def generate_audio_file(content, filename_prefix):
     if not content.strip():  # 檢查文本空白
-        print(f"警告：文本為空，無法生成音頻：{filename}")
-        return
-    tts = gTTS(text=content, lang='en' , tld=Us_uk )
+        print(f"警告：文本為空，無法生成音頻：{filename_prefix}")
+        return None
+    print(f"Generating audio for: {content}") # Debug print
+    tts = gTTS(text=content, lang='en' , tld='com' )
+    # Create a unique filename based on content hash or just the content itself
+    # For simplicity, let's use a sanitized version of the content for the filename
+    sanitized_content = "".join(c for c in content if c.isalnum() or c in (' ', '.', '_')).strip()
+    filename = f"{filename_prefix}_{sanitized_content}.mp3"
     filepath = os.path.join('audio_files', filename)
     tts.save(filepath)
     return filepath
+
+@app.route("/play-word-audio", methods=["GET"])
+def play_word_audio():
+    word = request.args.get("word")
+    if word:
+        audio_filepath = generate_audio_file(word, "word")
+        if audio_filepath and os.path.exists(audio_filepath):
+            return send_file(audio_filepath)
+    return "音檔不存在", 404
 def anser_Q(prompt_Q):
     try:
         # 生成回答
@@ -81,7 +160,7 @@ def anser_Q(prompt_Q):
         """
         answerQ_response = model.generate_content(answerQ_prompt).text
         return answerQ_response
-    except Exception as e:
+    except Exception:
         print(f"Error processing question '{prompt_Q}': {traceback.format_exc()}")
         return "抱歉，回答失敗，請稍後再試"
 
@@ -118,29 +197,11 @@ def translator():
             with lock:
                 time.sleep(0.5)  
                 translation, explanation, examples = translate_word(word)
-
-                generate_audio_file(word, "word.mp3")
-                
-                example_lines = examples.split("\n")
-                generate_audio_file(example_lines[0], "example1.mp3")
-                generate_audio_file(example_lines[3], "example2.mp3")
     
     return render_template('translator.html', translation=translation, explanation=explanation, examples=examples)
 
 
-# 播放
-@app.route("/play-audio", methods=["GET"])
-def play_audio():
-    type_ = request.args.get("type")
-    file_map = {
-        "word": "audio_files/word.mp3",
-        "example1": "audio_files/example1.mp3",
-        "example2": "audio_files/example2.mp3",
-    }
-    filepath = file_map.get(type_)
-    if filepath and os.path.exists(filepath):
-        return send_file(filepath)
-    return "音檔不存在", 404
+
 
 @app.route("/ai-teacher", methods=["GET", "POST"])
 def ai_teacher():
@@ -151,6 +212,90 @@ def ai_teacher():
             teacher_answer = anser_Q(prompt_Q)
     return render_template('teach.html', teacher_answer=teacher_answer)
 
+@app.route("/api/themes_and_lessons", methods=["GET"])
+def get_themes_and_lessons():
+    df = pd.read_csv('國小英文教材/基礎1200單字/國小1200基礎單字每日學習表.csv')
+    
+    themes_data = []
+    current_theme = None
+
+    for index, row in df.iterrows():
+        theme_group = str(row['主題分組']).strip()
+        
+        if theme_group.startswith('主題'):
+            if current_theme:
+                themes_data.append(current_theme)
+            current_theme = {
+                'theme_name': theme_group.split('：')[1] if '：' in theme_group else theme_group,
+                'lessons': []
+            }
+        elif current_theme and theme_group and not theme_group.startswith('中文'): # 確保不是單字行
+            current_theme['lessons'].append(theme_group)
+    
+    if current_theme:
+        themes_data.append(current_theme)
+
+    return jsonify(themes_data)
+
+@app.route("/elementary_english", methods=["GET"])
+def elementary_english():
+    return redirect(url_for('vocabulary_learning', category='1200'))
+
+@app.route("/vocabulary_learning/<category>", methods=["GET"])
+def vocabulary_learning(category):
+    # 這裡可以根據 category 參數來決定載入哪種單字集
+    # 目前只處理 '1200'，未來可以擴展
+    return render_template('vocabulary_learning.html', category=category)
+
+@app.route("/api/words/<category>", methods=["GET"])
+def get_words_by_category(category):
+    df = pd.read_csv('國小英文教材/基礎1200單字/國小1200基礎單字每日學習表.csv')
+
+    theme_filter = request.args.get('theme') # e.g., "人物"
+    lesson_filter = request.args.get('lesson') # e.g., "人物1"
+
+    word_data_list = []
+
+    for index, row in df.iterrows():
+        theme_group = str(row['主題分組']).strip()
+
+        # Skip theme header rows (e.g., "主題一：人物")
+        if theme_group.startswith('主題'):
+            continue
+
+        # Apply theme filter if provided
+        if theme_filter:
+            # Check if the current lesson (e.g., "人物1") belongs to the selected theme (e.g., "人物")
+            # This assumes lesson names start with the theme name.
+            if not theme_group.startswith(theme_filter):
+                continue
+
+        # Apply lesson filter if provided
+        if lesson_filter:
+            # Check if the current lesson exactly matches the selected lesson
+            if theme_group != lesson_filter:
+                continue
+
+        # Process the words in this row (which is a lesson row)
+        for i in range(1, 7): # Iterate through 6 word pairs
+            english_col_name = f'中文{i}' # English word is in '中文X' column
+            chinese_col_name = f'英文{i+1}' # Chinese translation is in '英文X+1' column
+
+            if english_col_name in row and pd.notna(row[english_col_name]):
+                english_word = str(row[english_col_name]).strip()
+                chinese_word = str(row[chinese_col_name]).strip() if chinese_col_name in row and pd.notna(row[chinese_col_name]) else ''
+
+                if english_word:
+                    image_url = get_image_from_pexels(english_word)
+                    word_data_list.append({
+                        'english': english_word,
+                        'chinese': chinese_word,
+                        'image': image_url
+                    })
+
+    random.shuffle(word_data_list)
+    return jsonify(word_data_list)
+
 # 確保音檔目錄
 os.makedirs('audio_files', exist_ok=True)
 #作文區
@@ -159,7 +304,7 @@ def generate_essay_topic(topic):
         prompt = f"請根據以下領域 '{topic}' 生成一個適合高中程度的英文作文題目 (你不能輸出＊字符號)，只返回題目本身不需要額外文字。"
         response = model.generate_content(prompt).text.strip()
         return response
-    except Exception as e:
+    except Exception:
         print(f"Error generating essay topic for '{topic}': {traceback.format_exc()}")
         return "無法生成題目，請稍後再試"
 def generate_paragraph_theme(topic, essay_topic, keywords):
@@ -180,12 +325,12 @@ def generate_paragraph_theme(topic, essay_topic, keywords):
         """
         response = model.generate_content(prompt).text.strip()
         return response
-    except Exception as e:
+    except Exception:
         print(f"Error generating paragraph theme for '{topic}' and '{essay_topic}': {traceback.format_exc()}")
         return "無法生成段落主題，請稍後再試"
 
 def generate_key_points(topic, essay_topic, paragraph_theme):
-     try:
+    try:
         prompt = f"""請根據以下領域 '{topic}'、作文題目 '{essay_topic}' 和段落主題'{paragraph_theme}'，針對每一個段落主題生成適合高中程度的英文文章關鍵點１０字上下(你不能輸出＊字符號)，按照以下格式輸出:
         第一段: 請寫出由第一段主題延伸的關鍵點
         第二段: 請寫出由第二段主題延伸的關鍵點
@@ -195,9 +340,9 @@ def generate_key_points(topic, essay_topic, paragraph_theme):
         """
         response = model.generate_content(prompt).text.strip()
         return response
-     except Exception as e:
-         print(f"Error generating key points for '{topic}', '{essay_topic}', and '{paragraph_theme}': {traceback.format_exc()}")
-         return "無法生成關鍵點，請稍後再試"
+    except Exception:
+        print(f"Error generating key points for '{topic}', '{essay_topic}', and '{paragraph_theme}': {traceback.format_exc()}")
+        return "無法生成關鍵點，請稍後再試"
 
 def generate_topic_sentence(topic, essay_topic, paragraph_theme, keywords):
     try:
@@ -210,7 +355,7 @@ def generate_topic_sentence(topic, essay_topic, paragraph_theme, keywords):
         """
          response = model.generate_content(prompt).text.strip()
          return response
-    except Exception as e:
+    except Exception:
         print(f"Error generating topic sentence for '{topic}', '{essay_topic}', '{paragraph_theme}', and '{keywords}': {traceback.format_exc()}")
         return "無法生成主題句，請稍後再試"
 def save_composition_data(step, data):
@@ -227,7 +372,7 @@ def compose_essay():
                 else:
                    essay_parts.append(composition_data[step]['topic_sentence'])
         return "\n".join(essay_parts)
-    except Exception as e:
+    except Exception:
         print(f"Error composing essay: {traceback.format_exc()}")
         return "無法生成作文，請稍後再試"
 def generate_essay_evaluation(essay):
@@ -237,7 +382,7 @@ def generate_essay_evaluation(essay):
         """
         response = model.generate_content(prompt).text.strip()
         return response
-    except Exception as e:
+    except Exception:
          print(f"Error generating essay evaluation: {traceback.format_exc()}")
          return "無法生成作文評價，請稍後再試"
 def generate_refined_essay(essay):
@@ -247,7 +392,7 @@ def generate_refined_essay(essay):
         """
         response = model.generate_content(prompt).text.strip()
         return response
-    except Exception as e:
+    except Exception:
          print(f"Error generating refined essay: {traceback.format_exc()}")
          return "無法生成潤飾後的作文，請稍後再試"
 @app.route("/composition", methods=["GET", "POST"])

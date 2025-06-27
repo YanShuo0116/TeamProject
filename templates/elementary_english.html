@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國小英文教學</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/elementary_english.css') }}">
+</head>
+<body class="dark-mode">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot"></i> AI 英文學習
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/we">關於我們</a>
+                    </li>
+                    <li class="nav-item">
+                        <div class="theme-switch-wrapper">
+                            <label class="theme-switch" for="checkbox">
+                                <input type="checkbox" id="checkbox" />
+                                <div class="slider round">
+                                    <i class="fas fa-sun"></i>
+                                    <i class="fas fa-moon"></i>
+                                </div>
+                            </label>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <h1 class="page-title">國小英文教學</h1>
+            <div class="translator-container">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h2>基礎1200單字學習</h2>
+                        <a href="#" class="single-feature-btn">開始學習</a>
+                    </div>
+                    <div class="feature-card">
+                        <h2>低年級教材</h2>
+                        <div class="sub-features">
+                            <a href="#" class="sub-feature-btn">AI語音教學</a>
+                            <a href="#" class="sub-feature-btn">AI文法教學</a>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <h2>中年級教材</h2>
+                        <div class="sub-features">
+                            <a href="#" class="sub-feature-btn">AI語音教學</a>
+                            <a href="#" class="sub-feature-btn">AI文法教學</a>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <h2>高年級教材</h2>
+                        <div class="sub-features">
+                            <a href="#" class="sub-feature-btn">AI語音教學</a>
+                            <a href="#" class="sub-feature-btn">AI文法教學</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        const themeSwitch = document.getElementById('checkbox');
+        themeSwitch.addEventListener('change', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+    </script>
+</body>
+</html>

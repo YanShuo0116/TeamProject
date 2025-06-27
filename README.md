@@ -21,7 +21,7 @@ https://ngrok.com/
 
 得到API後去app.py的"配置API"中替換"YOUR_API"
 
-# 執行cmd 
+# 執行cmd （source "/Volumes/我的Ｍ．２ssd 1/程式/my_project_v0.4/venv/bin/activate"）
 
 python app.py
 

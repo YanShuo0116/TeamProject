@@ -3,3 +3,4 @@ pyngrok
 google-generativeai
 gTTS
 Flask-Cors
+pexels-api-py
