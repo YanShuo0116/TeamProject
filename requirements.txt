@@ -4,3 +4,6 @@ google-generativeai
 gTTS
 Flask-Cors
 pexels-api-py
+Flask-SQLAlchemy
+pandas
+Flask-Login

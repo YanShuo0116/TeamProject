@@ -1,5 +1,6 @@
 #語音小BUG 再次生成不會覆蓋
-from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for
+from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for, flash
+from flask_login import LoginManager, current_user
 from pyngrok import ngrok
 import traceback
 import time
@@ -11,6 +12,9 @@ from flask_cors import CORS
 import pandas as pd
 from pexelsapi.pexels import Pexels
 import random
+from auth import auth_bp
+from admin import admin_bp
+from models import User
 
 #小小設定一下
 lock = threading.Lock()
@@ -29,6 +33,32 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 # 建立 Flask 
 app = Flask(__name__)
 CORS(app)
+app.config['SECRET_KEY'] = 'your_secret_key'  # 更換為一個安全的密鑰
+
+# 設定資料庫
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///learning_platform.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+from models import db
+db.init_app(app)
+
+# 設定 Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# 註冊藍圖
+app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
+
+# 錯誤處理
+@app.errorhandler(403)
+def forbidden(error):
+    return render_template('unauthorized.html'), 403
+
 #作文資料紀錄
 composition_data = {}
 
