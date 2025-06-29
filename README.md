@@ -54,7 +54,7 @@ Press CTRL+C to quit
 # 按著CTRL 點擊公開 URL 即可連線
 
        _                        
-       \`*-.
+       `*-.                    
         )  _`-.                 
        .  : `. .                
        : _   '  \               
