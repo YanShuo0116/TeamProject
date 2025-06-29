@@ -1,32 +1,52 @@
-
+/* 登入註冊頁面樣式 */
 body, html {
     height: 100%;
     margin: 0;
-    font-family: 'Helvetica Neue', sans-serif;
-    background: #f0f2f5;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow-x: hidden;
 }
 
 .auth-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100%;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .auth-card {
-    background: #fff;
-    padding: 2rem 3rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 3rem 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .auth-card h1 {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
     color: #333;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 2rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-group {
@@ -38,58 +58,193 @@ body, html {
     display: block;
     margin-bottom: 0.5rem;
     color: #555;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.95rem;
 }
 
 .form-group input {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+    padding: 1rem;
+    border: 2px solid #e1e5e9;
+    border-radius: 12px;
     font-size: 1rem;
-    box-sizing: border-box; /* Important for padding */
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.form-group input::placeholder {
+    color: #aaa;
+    font-style: italic;
 }
 
 .btn-primary {
     width: 100%;
-    padding: 0.75rem;
+    padding: 1rem;
     border: none;
-    border-radius: 5px;
-    background-color: #007bff;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     font-size: 1.1rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .btn-primary:hover {
-    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .auth-switch {
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
+    margin-top: 2rem;
+    font-size: 0.95rem;
+    color: #666;
 }
 
 .auth-switch a {
-    color: #007bff;
+    color: #667eea;
     text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
 }
 
 .auth-switch a:hover {
+    color: #764ba2;
     text-decoration: underline;
 }
 
+.back-home {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.back-home a {
+    color: #888;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.back-home a:hover {
+    color: #667eea;
+}
+
+.back-home a::before {
+    content: "←";
+    font-weight: bold;
+}
+
+/* 錯誤訊息樣式 */
 .flashes {
     list-style: none;
     padding: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .flashes li {
-    background: #f8d7da;
-    color: #721c24;
-    padding: 0.75rem;
-    border: 1px solid #f5c6cb;
-    border-radius: 5px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    animation: shake 0.5s ease-in-out;
+}
+
+.flashes li.success {
+    background: linear-gradient(135deg, #51cf66, #40c057);
+    box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3);
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* 響應式設計 */
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 15px;
+    }
+    
+    .auth-card {
+        padding: 2rem 1.5rem;
+        border-radius: 15px;
+    }
+    
+    .auth-card h1 {
+        font-size: 1.7rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group input {
+        padding: 0.9rem;
+        font-size: 0.95rem;
+    }
+    
+    .btn-primary {
+        padding: 0.9rem;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .auth-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .auth-card h1 {
+        font-size: 1.5rem;
+    }
+}
+
+/* 載入動畫 */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.loading .btn-primary {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* 輸入驗證樣式 */
+.form-group input:invalid {
+    border-color: #ff6b6b;
+}
+
+.form-group input:valid {
+    border-color: #51cf66;
+}
+
+/* 焦點可見性改善 */
+.form-group input:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.btn-primary:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
 }

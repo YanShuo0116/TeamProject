@@ -12,9 +12,10 @@ from flask_cors import CORS
 import pandas as pd
 from pexelsapi.pexels import Pexels
 import random
+from datetime import datetime
 from auth import auth_bp
 from admin import admin_bp
-from models import User
+from models import User, VocabularyProgress, LessonProgress, Vocabulary, LearningRecord, QuizAttempt, QuizQuestion
 
 #小小設定一下
 lock = threading.Lock()
@@ -48,7 +49,7 @@ login_manager.login_view = 'auth.login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # 註冊藍圖
 app.register_blueprint(auth_bp)
@@ -307,24 +308,587 @@ def get_words_by_category(category):
                 continue
 
         # Process the words in this row (which is a lesson row)
+        # 根據CSV格式：中文1,英文2,中文2,英文3,中文3,英文4,中文4,英文5,中文5,英文6,中文6,英文7
+        # 注意：列名有誤導性，實際上 中文X 列包含英文單字，英文X 列包含中文翻譯
         for i in range(1, 7): # Iterate through 6 word pairs
-            english_col_name = f'中文{i}' # English word is in '中文X' column
-            chinese_col_name = f'英文{i+1}' # Chinese translation is in '英文X+1' column
+            english_col_name = f'中文{i}' # 實際上包含英文單字
+            chinese_col_name = f'英文{i+1}' # 實際上包含中文翻譯
 
-            if english_col_name in row and pd.notna(row[english_col_name]):
+            if english_col_name in row and pd.notna(row[english_col_name]) and chinese_col_name in row and pd.notna(row[chinese_col_name]):
                 english_word = str(row[english_col_name]).strip()
-                chinese_word = str(row[chinese_col_name]).strip() if chinese_col_name in row and pd.notna(row[chinese_col_name]) else ''
+                chinese_word = str(row[chinese_col_name]).strip()
 
-                if english_word:
+                if english_word and chinese_word:
                     image_url = get_image_from_pexels(english_word)
+                    
+                    # 檢查用戶學習進度
+                    progress_status = 'not_learned'
+                    if current_user.is_authenticated:
+                        vocab = Vocabulary.query.filter_by(word=english_word).first()
+                        if vocab:
+                            progress = VocabularyProgress.query.filter_by(
+                                user_id=current_user.id, 
+                                word_id=vocab.id
+                            ).first()
+                            if progress:
+                                progress_status = progress.status
+                    
                     word_data_list.append({
                         'english': english_word,
                         'chinese': chinese_word,
-                        'image': image_url
+                        'image': image_url,
+                        'progress_status': progress_status
                     })
 
     random.shuffle(word_data_list)
     return jsonify(word_data_list)
+
+# 學習進度追蹤 API
+@app.route("/api/update_word_progress", methods=["POST"])
+def update_word_progress():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'User not authenticated'}), 401
+    
+    data = request.get_json()
+    word = data.get('word')
+    status = data.get('status', 'learned')
+    theme = data.get('theme')
+    lesson = data.get('lesson')
+    
+    if not word:
+        return jsonify({'error': 'Word is required'}), 400
+    
+    # 查找或創建單字記錄
+    vocab = Vocabulary.query.filter_by(word=word).first()
+    if not vocab:
+        vocab = Vocabulary(
+            word=word,
+            theme_name=theme,
+            lesson_name=lesson
+        )
+        db.session.add(vocab)
+        db.session.flush()  # 獲取 ID
+    
+    # 更新或創建學習進度
+    progress = VocabularyProgress.query.filter_by(
+        user_id=current_user.id,
+        word_id=vocab.id
+    ).first()
+    
+    if not progress:
+        progress = VocabularyProgress(
+            user_id=current_user.id,
+            word_id=vocab.id,
+            status=status,
+            last_reviewed=datetime.now(),
+            review_count=1
+        )
+        db.session.add(progress)
+    else:
+        progress.status = status
+        progress.last_reviewed = datetime.now()
+        progress.review_count += 1
+        if status == 'learned':
+            progress.correct_count += 1
+    
+    # 更新課程進度
+    if theme and lesson:
+        lesson_progress = LessonProgress.query.filter_by(
+            user_id=current_user.id,
+            theme_name=theme,
+            lesson_name=lesson
+        ).first()
+        
+        if not lesson_progress:
+            # 計算該課程總單字數
+            total_words = get_lesson_word_count(theme, lesson)
+            lesson_progress = LessonProgress(
+                user_id=current_user.id,
+                theme_name=theme,
+                lesson_name=lesson,
+                total_words=total_words,
+                learned_words=0,
+                last_studied=datetime.now()
+            )
+            db.session.add(lesson_progress)
+        
+        # 計算已學習的單字數
+        learned_count = VocabularyProgress.query.join(Vocabulary).filter(
+            VocabularyProgress.user_id == current_user.id,
+            VocabularyProgress.status == 'learned',
+            Vocabulary.theme_name == theme,
+            Vocabulary.lesson_name == lesson
+        ).count()
+        
+        lesson_progress.learned_words = learned_count
+        lesson_progress.last_studied = datetime.now()
+        
+        # 檢查是否完成課程 (需要學習所有單字)
+        if learned_count >= lesson_progress.total_words and lesson_progress.total_words > 0:
+            lesson_progress.is_completed = True
+            if not lesson_progress.completion_date:
+                lesson_progress.completion_date = datetime.now()
+    
+    # 記錄學習活動
+    learning_record = LearningRecord(
+        user_id=current_user.id,
+        activity_type='vocabulary',
+        content=f'學習單字: {word} ({status})'
+    )
+    db.session.add(learning_record)
+    
+    db.session.commit()
+    
+    return jsonify({'success': True, 'status': status})
+
+def get_lesson_word_count(theme, lesson):
+    """計算特定課程的單字總數"""
+    df = pd.read_csv('國小英文教材/基礎1200單字/國小1200基礎單字每日學習表.csv')
+    count = 0
+    
+    for index, row in df.iterrows():
+        theme_group = str(row['主題分組']).strip()
+        
+        if theme_group == lesson:
+            for i in range(1, 7):
+                english_col_name = f'中文{i}'  # 實際上包含英文單字
+                chinese_col_name = f'英文{i+1}'  # 實際上包含中文翻譯
+                if (english_col_name in row and pd.notna(row[english_col_name]) and 
+                    chinese_col_name in row and pd.notna(row[chinese_col_name])):
+                    count += 1
+    
+    return count
+
+@app.route("/api/lesson_progress", methods=["GET"])
+def get_lesson_progress():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'User not authenticated'}), 401
+    
+    theme = request.args.get('theme')
+    lesson = request.args.get('lesson')
+    
+    if theme and lesson:
+        # 獲取特定課程進度
+        progress = LessonProgress.query.filter_by(
+            user_id=current_user.id,
+            theme_name=theme,
+            lesson_name=lesson
+        ).first()
+        
+        if progress:
+            return jsonify({
+                'total_words': progress.total_words,
+                'learned_words': progress.learned_words,
+                'is_completed': progress.is_completed,
+                'completion_date': progress.completion_date.isoformat() if progress.completion_date else None,
+                'progress_percentage': (progress.learned_words / progress.total_words * 100) if progress.total_words > 0 else 0
+            })
+        else:
+            total_words = get_lesson_word_count(theme, lesson)
+            return jsonify({
+                'total_words': total_words,
+                'learned_words': 0,
+                'is_completed': False,
+                'completion_date': None,
+                'progress_percentage': 0
+            })
+    else:
+        # 獲取所有課程進度
+        all_progress = LessonProgress.query.filter_by(user_id=current_user.id).all()
+        progress_data = {}
+        
+        for progress in all_progress:
+            key = f"{progress.theme_name}_{progress.lesson_name}"
+            progress_data[key] = {
+                'total_words': progress.total_words,
+                'learned_words': progress.learned_words,
+                'is_completed': progress.is_completed,
+                'completion_date': progress.completion_date.isoformat() if progress.completion_date else None,
+                'progress_percentage': (progress.learned_words / progress.total_words * 100) if progress.total_words > 0 else 0
+            }
+        
+        return jsonify(progress_data)
+
+# 測驗相關 API
+@app.route("/api/start_quiz", methods=["POST"])
+def start_quiz():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'User not authenticated'}), 401
+    
+    data = request.get_json()
+    theme = data.get('theme')
+    lesson = data.get('lesson')
+    
+    if not theme or not lesson:
+        return jsonify({'error': 'Theme and lesson are required'}), 400
+    
+    # 獲取該課程的所有已學習單字（排除有問題的資料）
+    learned_words = db.session.query(Vocabulary).join(VocabularyProgress).filter(
+        VocabularyProgress.user_id == current_user.id,
+        VocabularyProgress.status == 'learned',
+        Vocabulary.theme_name == theme,
+        Vocabulary.lesson_name == lesson,
+        Vocabulary.word.isnot(None),
+        Vocabulary.word != '',
+        Vocabulary.word != 'null',
+        ~Vocabulary.word.like('%null%'),
+        Vocabulary.chinese_translation.isnot(None),
+        Vocabulary.chinese_translation != '',
+        Vocabulary.chinese_translation != 'null',
+        ~Vocabulary.chinese_translation.like('%null%'),
+        ~Vocabulary.chinese_translation.like('%未知%')
+    ).all()
+    
+    if len(learned_words) == 0:
+        return jsonify({'error': 'No learned words found for this lesson'}), 400
+    
+    # 創建測驗嘗試記錄
+    quiz_attempt = QuizAttempt(
+        user_id=current_user.id,
+        theme_name=theme,
+        lesson_name=lesson,
+        total_questions=len(learned_words),
+        started_at=datetime.now()
+    )
+    db.session.add(quiz_attempt)
+    db.session.flush()  # 獲取 ID
+    
+    # 為每個單字創建隨機題型的問題
+    question_types = ['chinese_to_english', 'english_to_chinese', 'spelling']
+    
+    for word in learned_words:
+        question_type = random.choice(question_types)
+        quiz_question = QuizQuestion(
+            attempt_id=quiz_attempt.id,
+            word_id=word.id,
+            question_type=question_type
+        )
+        db.session.add(quiz_question)
+    
+    db.session.commit()
+    
+    return jsonify({
+        'quiz_id': quiz_attempt.id,
+        'total_questions': len(learned_words),
+        'message': 'Quiz started successfully'
+    })
+
+@app.route("/api/get_quiz_question/<int:quiz_id>/<int:question_index>", methods=["GET"])
+def get_quiz_question(quiz_id, question_index):
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'User not authenticated'}), 401
+    
+    # 獲取測驗嘗試
+    quiz_attempt = QuizAttempt.query.filter_by(
+        id=quiz_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not quiz_attempt:
+        return jsonify({'error': 'Quiz not found'}), 404
+    
+    # 獲取問題
+    questions = QuizQuestion.query.filter_by(attempt_id=quiz_id).all()
+    
+    if question_index >= len(questions):
+        return jsonify({'error': 'Question index out of range'}), 400
+    
+    current_question = questions[question_index]
+    word = current_question.word
+    
+    # 根據題型生成問題內容
+    question_data = {
+        'question_id': current_question.id,
+        'question_index': question_index,
+        'total_questions': len(questions),
+        'question_type': current_question.question_type,
+        'word_id': word.id
+    }
+    
+    if current_question.question_type == 'chinese_to_english':
+        # 中文選英文
+        question_data.update({
+            'question_text': word.chinese_translation,
+            'image_url': get_image_from_pexels(word.word),
+            'options': generate_english_options(word, quiz_attempt.theme_name, quiz_attempt.lesson_name),
+            'correct_answer': word.word
+        })
+    
+    elif current_question.question_type == 'english_to_chinese':
+        # 英文選中文
+        question_data.update({
+            'question_text': word.word,
+            'image_url': get_image_from_pexels(word.word),
+            'options': generate_chinese_options(word, quiz_attempt.theme_name, quiz_attempt.lesson_name),
+            'correct_answer': word.chinese_translation
+        })
+    
+    elif current_question.question_type == 'spelling':
+        # 拼字題
+        question_data.update({
+            'question_text': word.chinese_translation,
+            'scrambled_letters': list(word.word.upper()),
+            'correct_answer': word.word.upper()
+        })
+        random.shuffle(question_data['scrambled_letters'])
+    
+    return jsonify(question_data)
+
+def generate_english_options(correct_word, theme_name, lesson_name):
+    """生成英文選項（包含正確答案和3個干擾項）"""
+    # 確保正確答案不為空
+    if not correct_word.word or correct_word.word.strip() == '' or correct_word.word.lower() == 'null':
+        return ['error', 'loading', 'failed', 'retry']
+    
+    # 獲取同課程的其他單字作為干擾項（排除空值和null值）
+    other_words = Vocabulary.query.filter(
+        Vocabulary.theme_name == theme_name,
+        Vocabulary.lesson_name == lesson_name,
+        Vocabulary.id != correct_word.id,
+        Vocabulary.word.isnot(None),
+        Vocabulary.word != '',
+        Vocabulary.word != 'null',
+        ~Vocabulary.word.like('%null%')  # 排除包含null的字串
+    ).limit(15).all()
+    
+    options = [correct_word.word]
+    
+    # 添加3個干擾項
+    for word in other_words:
+        if len(options) >= 4:
+            break
+        if (word.word and 
+            word.word.strip() != '' and 
+            word.word.lower() != 'null' and
+            'null' not in word.word.lower() and
+            word.word not in options):
+            options.append(word.word)
+    
+    # 如果不夠3個干擾項，從其他課程補充
+    if len(options) < 4:
+        additional_words = Vocabulary.query.filter(
+            Vocabulary.id != correct_word.id,
+            Vocabulary.word.isnot(None),
+            Vocabulary.word != '',
+            Vocabulary.word != 'null',
+            ~Vocabulary.word.like('%null%')
+        ).limit(30).all()
+        
+        for word in additional_words:
+            if len(options) >= 4:
+                break
+            if (word.word and 
+                word.word.strip() != '' and 
+                word.word.lower() != 'null' and
+                'null' not in word.word.lower() and
+                word.word not in options):
+                options.append(word.word)
+    
+    # 如果還是不夠4個選項，添加預設選項
+    default_options = ['apple', 'book', 'cat', 'dog', 'egg', 'fish', 'water', 'house', 'tree', 'sun']
+    for default_option in default_options:
+        if len(options) >= 4:
+            break
+        if default_option not in options:
+            options.append(default_option)
+    
+    # 確保至少有4個選項
+    while len(options) < 4:
+        options.append(f"option_{len(options)}")
+    
+    random.shuffle(options)
+    return options[:4]  # 確保只返回4個選項
+
+def generate_chinese_options(correct_word, theme_name, lesson_name):
+    """生成中文選項（包含正確答案和3個干擾項）"""
+    # 確保正確答案不為空
+    if (not correct_word.chinese_translation or 
+        correct_word.chinese_translation.strip() == '' or 
+        correct_word.chinese_translation.lower() == 'null' or
+        '未知' in correct_word.chinese_translation):
+        return ['選項載入錯誤', '請重新載入', '資料異常', '系統錯誤']
+    
+    # 獲取同課程的其他單字作為干擾項（排除中文翻譯為空的）
+    other_words = Vocabulary.query.filter(
+        Vocabulary.theme_name == theme_name,
+        Vocabulary.lesson_name == lesson_name,
+        Vocabulary.id != correct_word.id,
+        Vocabulary.chinese_translation.isnot(None),
+        Vocabulary.chinese_translation != '',
+        Vocabulary.chinese_translation != 'null',
+        ~Vocabulary.chinese_translation.like('%null%'),
+        ~Vocabulary.chinese_translation.like('%未知%')
+    ).limit(15).all()
+    
+    options = [correct_word.chinese_translation]
+    
+    # 添加3個干擾項
+    for word in other_words:
+        if len(options) >= 4:
+            break
+        if (word.chinese_translation and 
+            word.chinese_translation.strip() != '' and 
+            word.chinese_translation.lower() != 'null' and
+            'null' not in word.chinese_translation.lower() and
+            '未知' not in word.chinese_translation and
+            word.chinese_translation not in options):
+            options.append(word.chinese_translation)
+    
+    # 如果不夠3個干擾項，從其他課程補充
+    if len(options) < 4:
+        additional_words = Vocabulary.query.filter(
+            Vocabulary.id != correct_word.id,
+            Vocabulary.chinese_translation.isnot(None),
+            Vocabulary.chinese_translation != '',
+            Vocabulary.chinese_translation != 'null',
+            ~Vocabulary.chinese_translation.like('%null%'),
+            ~Vocabulary.chinese_translation.like('%未知%')
+        ).limit(30).all()
+        
+        for word in additional_words:
+            if len(options) >= 4:
+                break
+            if (word.chinese_translation and 
+                word.chinese_translation.strip() != '' and 
+                word.chinese_translation.lower() != 'null' and
+                'null' not in word.chinese_translation.lower() and
+                '未知' not in word.chinese_translation and
+                word.chinese_translation not in options):
+                options.append(word.chinese_translation)
+    
+    # 如果還是不夠4個選項，添加預設選項
+    default_options = ['人物', '動物', '物品', '動作', '形容詞', '名詞', '顏色', '食物', '家庭', '學校']
+    for default_option in default_options:
+        if len(options) >= 4:
+            break
+        if default_option not in options:
+            options.append(default_option)
+    
+    # 確保至少有4個選項
+    while len(options) < 4:
+        options.append(f"選項{len(options)}")
+    
+    random.shuffle(options)
+    return options[:4]  # 確保只返回4個選項
+
+@app.route("/api/submit_quiz_answer", methods=["POST"])
+def submit_quiz_answer():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'User not authenticated'}), 401
+    
+    data = request.get_json()
+    question_id = data.get('question_id')
+    user_answer = data.get('answer')
+    
+    if not question_id or user_answer is None:
+        return jsonify({'error': 'Question ID and answer are required'}), 400
+    
+    # 獲取問題
+    question = QuizQuestion.query.get(question_id)
+    if not question:
+        return jsonify({'error': 'Question not found'}), 404
+    
+    # 檢查答案是否正確
+    word = question.word
+    is_correct = False
+    
+    if question.question_type == 'chinese_to_english':
+        is_correct = user_answer.lower().strip() == word.word.lower().strip()
+    elif question.question_type == 'english_to_chinese':
+        is_correct = user_answer.strip() == word.chinese_translation.strip()
+    elif question.question_type == 'spelling':
+        is_correct = user_answer.upper().strip() == word.word.upper().strip()
+    
+    # 更新問題記錄
+    question.user_answer = user_answer
+    question.is_correct = is_correct
+    question.answered_at = datetime.now()
+    
+    db.session.commit()
+    
+    # 根據題型返回正確的答案格式
+    if question.question_type == 'chinese_to_english':
+        correct_answer = word.word
+    elif question.question_type == 'english_to_chinese':
+        correct_answer = word.chinese_translation
+    elif question.question_type == 'spelling':
+        correct_answer = word.word.upper()  # 拼字題顯示大寫英文單字
+    else:
+        correct_answer = word.word
+    
+    return jsonify({
+        'is_correct': is_correct,
+        'correct_answer': correct_answer
+    })
+
+@app.route("/api/complete_quiz/<int:quiz_id>", methods=["POST"])
+def complete_quiz(quiz_id):
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'User not authenticated'}), 401
+    
+    # 獲取測驗嘗試
+    quiz_attempt = QuizAttempt.query.filter_by(
+        id=quiz_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not quiz_attempt:
+        return jsonify({'error': 'Quiz not found'}), 404
+    
+    # 計算正確答案數
+    correct_answers = QuizQuestion.query.filter_by(
+        attempt_id=quiz_id,
+        is_correct=True
+    ).count()
+    
+    total_questions = QuizQuestion.query.filter_by(attempt_id=quiz_id).count()
+    
+    # 計算完成時間
+    completion_time = int((datetime.now() - quiz_attempt.started_at).total_seconds())
+    
+    # 判斷是否通過（80%正確率）
+    pass_threshold = 0.8
+    is_passed = (correct_answers / total_questions) >= pass_threshold
+    
+    # 更新測驗記錄
+    quiz_attempt.correct_answers = correct_answers
+    quiz_attempt.is_passed = is_passed
+    quiz_attempt.completion_time = completion_time
+    quiz_attempt.completed_at = datetime.now()
+    
+    # 只有通過測驗才更新課程進度為完成
+    if is_passed:
+        lesson_progress = LessonProgress.query.filter_by(
+            user_id=current_user.id,
+            theme_name=quiz_attempt.theme_name,
+            lesson_name=quiz_attempt.lesson_name
+        ).first()
+        
+        if lesson_progress:
+            lesson_progress.is_completed = True
+            lesson_progress.completion_date = datetime.now()
+    else:
+        # 如果測驗未通過，確保課程進度不被標記為完成
+        lesson_progress = LessonProgress.query.filter_by(
+            user_id=current_user.id,
+            theme_name=quiz_attempt.theme_name,
+            lesson_name=quiz_attempt.lesson_name
+        ).first()
+        
+        if lesson_progress:
+            lesson_progress.is_completed = False
+            lesson_progress.completion_date = None
+    
+    db.session.commit()
+    
+    return jsonify({
+        'is_passed': is_passed,
+        'correct_answers': correct_answers,
+        'total_questions': total_questions,
+        'score_percentage': round((correct_answers / total_questions) * 100, 1),
+        'completion_time': completion_time,
+        'pass_threshold': int(pass_threshold * 100)
+    })
 
 # 確保音檔目錄
 os.makedirs('audio_files', exist_ok=True)

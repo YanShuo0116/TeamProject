@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 from app import app, db
-from models import User, Vocabulary, SystemSetting
+from models import User, Vocabulary, SystemSetting, VocabularyProgress, LessonProgress
 
 # Constants
 DATABASE_FILE = 'learning_platform.db'
@@ -46,9 +46,24 @@ def import_vocabulary():
                     word_to_add = row[english_col]
                     existing_word = Vocabulary.query.filter_by(word=word_to_add).first()
                     if not existing_word:
+                        # 確定主題和課程名稱
+                        theme_name = ""
+                        lesson_name = ""
+                        if '主題分組' in row and pd.notna(row['主題分組']):
+                            theme_group = str(row['主題分組']).strip()
+                            if '：' in theme_group:
+                                parts = theme_group.split('：')
+                                if len(parts) >= 2:
+                                    theme_name = parts[0].replace('主題', '').strip()
+                                    lesson_name = parts[1].strip()
+                            else:
+                                lesson_name = theme_group
+                        
                         word = Vocabulary(
                             word=word_to_add,
-                            chinese_translation=row[chinese_col] if chinese_col in row and pd.notna(row[chinese_col]) else ''
+                            chinese_translation=row[chinese_col] if chinese_col in row and pd.notna(row[chinese_col]) else '',
+                            theme_name=theme_name,
+                            lesson_name=lesson_name
                         )
                         db.session.add(word)
         db.session.commit()

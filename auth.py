@@ -1,4 +1,3 @@
-
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from models import User, db
@@ -23,7 +22,7 @@ def login():
                 return redirect(url_for('admin.dashboard'))
             return redirect(url_for('index'))
         else:
-            flash('Invalid username or password', 'danger')
+            flash('用戶名或密碼錯誤', 'danger')
 
     return render_template('login.html')
 
@@ -38,11 +37,11 @@ def register():
         password = request.form.get('password')
 
         if User.query.filter_by(username=username).first():
-            flash('Username already exists.', 'danger')
+            flash('用戶名已存在', 'danger')
             return redirect(url_for('auth.register'))
 
         if User.query.filter_by(email=email).first():
-            flash('Email already registered.', 'danger')
+            flash('電子郵件已被註冊', 'danger')
             return redirect(url_for('auth.register'))
 
         new_user = User(username=username, email=email)
@@ -50,7 +49,7 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
-        flash('Registration successful! Please log in.', 'success')
+        flash('註冊成功！請登入', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('register.html')

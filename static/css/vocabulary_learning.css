@@ -147,6 +147,636 @@ body.dark-mode {
     color: rgba(255, 255, 255, 0.8);
 }
 
+/* 完成狀態樣式 */
+.selection-card.completed {
+    border: 3px solid #28a745;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+}
+
+.dark-mode .selection-card.completed {
+    background: linear-gradient(135deg, #155724 0%, #1e7e34 100%);
+    color: #d4edda;
+}
+
+.selection-card.in-progress {
+    border: 3px solid #ffc107;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+}
+
+.dark-mode .selection-card.in-progress {
+    background: linear-gradient(135deg, #856404 0%, #b08d00 100%);
+    color: #fff3cd;
+}
+
+.selection-card.completed h3 {
+    color: #155724;
+}
+
+.dark-mode .selection-card.completed h3 {
+    color: #d4edda;
+}
+
+.selection-card.in-progress h3 {
+    color: #856404;
+}
+
+.dark-mode .selection-card.in-progress h3 {
+    color: #fff3cd;
+}
+
+/* 進度資訊樣式 */
+.progress-info {
+    width: 100%;
+    margin-top: 15px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.dark-mode .progress-bar-container {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff 0%, #28a745 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    display: block;
+    margin-bottom: 5px;
+}
+
+.word-count {
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+    display: block;
+}
+
+/* 完成徽章樣式 */
+.completion-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(40, 167, 69, 0.3);
+    z-index: 1;
+}
+
+/* 調整選擇卡片高度以容納進度資訊 */
+.selection-card {
+    min-height: 200px;
+    position: relative;
+}
+
+/* 完成訊息樣式 */
+.completion-container {
+    margin-top: 2rem;
+    text-align: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-radius: 15px;
+    border: 2px solid #28a745;
+    animation: slideIn 0.5s ease-out;
+}
+
+.dark-mode .completion-container {
+    background: linear-gradient(135deg, #155724 0%, #1e7e34 100%);
+    color: #d4edda;
+}
+
+/* 簡單的測驗按鈕樣式 */
+.quiz-button-container {
+    margin-top: 1.5rem;
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-radius: 15px;
+    border: 2px solid #28a745;
+    animation: slideIn 0.5s ease-out;
+}
+
+.dark-mode .quiz-button-container {
+    background: linear-gradient(135deg, #155724 0%, #1e7e34 100%);
+    color: #d4edda;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.completion-message h3 {
+    color: #155724;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.dark-mode .completion-message h3 {
+    color: #d4edda;
+}
+
+.completion-message p {
+    color: #155724;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.dark-mode .completion-message p {
+    color: #c3e6cb;
+}
+
+.quiz-action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.quiz-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.quiz-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    color: white;
+}
+
+/* 測驗相關樣式 */
+.quiz-option-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.quiz-completion-message {
+    background: var(--card-bg-light);
+    border-radius: 20px;
+    padding: 3rem;
+    text-align: center;
+    box-shadow: var(--card-shadow-light);
+    max-width: 600px;
+    width: 100%;
+}
+
+.dark-mode .quiz-completion-message {
+    background: var(--card-bg-dark);
+    box-shadow: var(--card-shadow-dark);
+}
+
+.quiz-completion-message h2 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+.quiz-info {
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    text-align: left;
+}
+
+.quiz-info ul {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.quiz-info li {
+    margin: 0.5rem 0;
+}
+
+.quiz-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.quiz-start-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.quiz-start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+/* 測驗介面樣式 */
+.quiz-container {
+    background: var(--card-bg-light);
+    border-radius: 20px;
+    padding: 2rem;
+    margin: 2rem 0;
+    box-shadow: var(--card-shadow-light);
+}
+
+.dark-mode .quiz-container {
+    background: var(--card-bg-dark);
+    box-shadow: var(--card-shadow-dark);
+}
+
+.quiz-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 1rem;
+}
+
+.quiz-header h2 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.quiz-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.quiz-progress-bar {
+    width: 100%;
+    max-width: 400px;
+    height: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.quiz-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+    transition: width 0.3s ease;
+    border-radius: 5px;
+}
+
+/* 問題樣式 */
+.quiz-question {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.question-image {
+    margin-bottom: 2rem;
+}
+
+.question-image img {
+    max-width: 300px;
+    max-height: 200px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.quiz-question h3 {
+    color: var(--text-dark);
+    margin-bottom: 2rem;
+    font-size: 1.5rem;
+}
+
+.dark-mode .quiz-question h3 {
+    color: var(--text-light);
+}
+
+/* 選擇題選項 */
+.quiz-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.quiz-option-btn {
+    background: var(--card-bg-light);
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.dark-mode .quiz-option-btn {
+    background: var(--card-bg-dark);
+    border-color: #495057;
+    color: var(--text-light);
+}
+
+.quiz-option-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.quiz-option-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 拼字題樣式 */
+.spelling-area {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.answer-area {
+    min-height: 60px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.dark-mode .answer-area {
+    background: #343a40;
+    border-color: #495057;
+}
+
+.answer-letter {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.letter-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.letter-btn {
+    background: var(--card-bg-light);
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 40px;
+}
+
+.dark-mode .letter-btn {
+    background: var(--card-bg-dark);
+    border-color: #495057;
+    color: var(--text-light);
+}
+
+.letter-btn:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.letter-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spelling-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+/* 答案結果樣式 */
+.answer-result {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    text-align: center;
+    min-width: 300px;
+    animation: popIn 0.3s ease-out;
+}
+
+.dark-mode .answer-result {
+    background: var(--card-bg-dark);
+    color: var(--text-light);
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.answer-result.correct {
+    border-left: 5px solid #28a745;
+}
+
+.answer-result.incorrect {
+    border-left: 5px solid #dc3545;
+}
+
+.result-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.answer-result.correct .result-icon {
+    color: #28a745;
+}
+
+.answer-result.incorrect .result-icon {
+    color: #dc3545;
+}
+
+.result-text {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* 測驗結果樣式 */
+.quiz-results {
+    text-align: center;
+    padding: 2rem;
+}
+
+.results-header h2 {
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+}
+
+.score-display {
+    margin: 2rem 0;
+}
+
+.score-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    border: 8px solid;
+    position: relative;
+}
+
+.score-circle.passed {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+}
+
+.score-circle.failed {
+    border-color: #dc3545;
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+}
+
+.score-percentage {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.results-details {
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    text-align: left;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.results-details p {
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.success-message {
+    color: #28a745;
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin: 1rem 0;
+}
+
+.retry-message {
+    color: #dc3545;
+    font-size: 1.1rem;
+    margin: 1rem 0;
+}
+
+.results-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .completion-container {
+        padding: 1.5rem 1rem;
+        margin-top: 1rem;
+    }
+    
+    .quiz-button-container {
+        margin: 1rem 0;
+        padding: 1rem;
+    }
+    
+    .quiz-action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .quiz-action-buttons .btn {
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .quiz-completion-message {
+        padding: 2rem 1rem;
+    }
+    
+    .quiz-container {
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .quiz-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .quiz-buttons,
+    .results-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .quiz-buttons .btn,
+    .results-buttons .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
 
 /* 單字卡片樣式 */
 .word-card-container {
@@ -319,6 +949,11 @@ body.dark-mode {
         font-size: 1.8rem;
     }
 
+    .controls {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
     .control-btn {
         padding: 8px 20px;
         font-size: 1rem;
@@ -349,9 +984,11 @@ body.dark-mode {
     .controls {
         flex-direction: column;
         gap: 10px;
+        align-items: center;
     }
 
     .control-btn {
         width: 80%;
+        max-width: 250px;
     }
 }

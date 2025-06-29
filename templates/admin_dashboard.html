@@ -1,32 +1,36 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <title>管理員儀表板</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
     <div class="admin-container">
         <aside class="sidebar">
-            <h2>Admin Panel</h2>
+            <h2><i class="fas fa-cog"></i> 管理面板</h2>
             <ul>
-                <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="#"><i class="fas fa-users"></i> User Management</a></li>
-                <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li>
-                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="{{ url_for('admin.dashboard') }}" class="active"><i class="fas fa-tachometer-alt"></i> 儀表板</a></li>
+                <li><a href="{{ url_for('admin.users') }}"><i class="fas fa-users"></i> 用戶管理</a></li>
+                <li><a href="{{ url_for('admin.analytics') }}"><i class="fas fa-chart-line"></i> 數據分析</a></li>
+                <li><a href="{{ url_for('admin.settings') }}"><i class="fas fa-cog"></i> 系統設定</a></li>
+                <li><a href="{{ url_for('admin.logs') }}"><i class="fas fa-file-alt"></i> 操作日誌</a></li>
+                <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> 返回首頁</a></li>
             </ul>
         </aside>
         <main class="main-content">
             <header class="header">
-                <h1>Dashboard</h1>
+                <h1>管理員儀表板</h1>
                 <div>
-                    <span>Welcome, {{ current_user.username }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+                    <span>歡迎, {{ current_user.username }}</span>
+                    <a href="{{ url_for('auth.logout') }}" class="logout-btn">登出</a>
                 </div>
             </header>
+            
+            <!-- 基本統計卡片 -->
             <section class="stats-cards">
                 <div class="card users">
                     <div class="card-icon">
@@ -34,7 +38,7 @@
                     </div>
                     <div class="card-info">
                         <h3>{{ stats.total_users }}</h3>
-                        <p>Total Users</p>
+                        <p>總用戶數</p>
                     </div>
                 </div>
                 <div class="card compositions">
@@ -43,7 +47,7 @@
                     </div>
                     <div class="card-info">
                         <h3>{{ stats.total_compositions }}</h3>
-                        <p>Total Compositions</p>
+                        <p>作文總數</p>
                     </div>
                 </div>
                 <div class="card records">
@@ -52,7 +56,7 @@
                     </div>
                     <div class="card-info">
                         <h3>{{ stats.total_learning_records }}</h3>
-                        <p>Learning Records</p>
+                        <p>學習記錄</p>
                     </div>
                 </div>
                 <div class="card words">
@@ -61,11 +65,108 @@
                     </div>
                     <div class="card-info">
                         <h3>{{ stats.total_vocabulary }}</h3>
-                        <p>Vocabulary Words</p>
+                        <p>單字總數</p>
                     </div>
+                </div>
+            </section>
+
+            <!-- 學習進度統計 -->
+            <section class="progress-stats">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card progress-card">
+                            <div class="card-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>{{ stats.total_lesson_progress }}</h3>
+                                <p>課程學習記錄</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card progress-card completed">
+                            <div class="card-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>{{ stats.completed_lessons }}</h3>
+                                <p>已完成課程</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card progress-card active">
+                            <div class="card-icon">
+                                <i class="fas fa-user-clock"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>{{ stats.active_users_week }}</h3>
+                                <p>週活躍用戶</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card progress-card completion-rate">
+                            <div class="card-icon">
+                                <i class="fas fa-percentage"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>{{ "%.1f"|format((stats.completed_lessons / stats.total_lesson_progress * 100) if stats.total_lesson_progress > 0 else 0) }}%</h3>
+                                <p>課程完成率</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 熱門學習活動 -->
+            <section class="popular-activities">
+                <h2>熱門學習活動</h2>
+                <div class="activity-chart">
+                    {% for activity in stats.popular_activities %}
+                    <div class="activity-item">
+                        <span class="activity-name">{{ activity[0] }}</span>
+                        <div class="activity-bar">
+                            <div class="activity-fill" style="width: {{ (activity[1] / stats.popular_activities[0][1] * 100) if stats.popular_activities else 0 }}%"></div>
+                        </div>
+                        <span class="activity-count">{{ activity[1] }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- 最近學習記錄 -->
+            <section class="recent-records">
+                <h2>最近學習記錄</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>用戶</th>
+                                <th>活動類型</th>
+                                <th>內容</th>
+                                <th>時間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in stats.recent_records %}
+                            <tr>
+                                <td>{{ record.user.username }}</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ record.activity_type }}</span>
+                                </td>
+                                <td>{{ record.content[:50] }}{% if record.content|length > 50 %}...{% endif %}</td>
+                                <td>{{ record.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </main>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
