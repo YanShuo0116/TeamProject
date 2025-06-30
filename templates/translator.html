@@ -60,11 +60,11 @@
                 <div class="col-lg-10">
                     <h1 class="page-title">AI翻譯Beta</h1>
                     <div class="translator-container">
-                        <form id="translate-form" method="POST" action="/translator">
+                        <form id="translate-form">
                             <div class="input-group">
-                                <input type="text" name="word" class="form-control" placeholder="請輸入英文單字" required>
+                                <input type="text" id="word-input" name="word" class="form-control" placeholder="請輸入英文單字" required>
                                 <div class="input-group-append">
-                                    <button class="btn btn-primary" type="submit">
+                                    <button class="btn btn-primary" type="submit" id="translate-btn">
                                         <i class="fas fa-language"></i> AI翻譯
                                     </button>
                                 </div>
@@ -82,105 +82,12 @@
 
                         <div class="loading-spinner" id="loading" style="display: none;">
                             <div class="spinner"></div>
-                            <p>載入中...</p>
+                            <p id="loading-message">載入中...</p>
                         </div>
 
-                        {% if translation %}
-                        <div class="result-container">
-                            {% if examples %}
-                            <!-- 調試信息 -->
-                            <div class="debug-info" style="display: none;">
-                                <p>Examples 原始內容: {{ examples }}</p>
-                                <p>分割後長度: {{ examples.split('\\n')|length }}</p>
-                                <p>索引 0: {{ examples.split('\\n')[0] }}</p>
-                                <p>索引 1: {{ examples.split('\\n')[1] }}</p>
-                                <p>索引 2: {{ examples.split('\\n')[2] if examples.split('\\n')|length > 2 else 'N/A' }}</p>
-                                <p>索引 3: {{ examples.split('\\n')[3] if examples.split('\\n')|length > 3 else 'N/A' }}</p>
-                            </div>
-                            {% endif %}
-                            
-                            <div class="result-card">
-                                <h3><i class="fas fa-language"></i> 中文翻譯</h3>
-                                <div class="translation-content">
-                                    {% set translation_lines = translation.split('\n') %}
-                                    {% for line in translation_lines %}
-                                        {% if line.strip() %}
-                                            <div class="translation-item">
-                                                {% if line[0].isdigit() and '. ' in line[:5] %}
-                                                    <div class="translation-number">{{ line.split('. ')[0] }}</div>
-                                                    <div class="translation-text">{{ line.split('. ', 1)[1] }}</div>
-                                                {% else %}
-                                                    <div class="translation-text">{{ line }}</div>
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                                <div class="audio-container">
-                                    <audio controls>
-                                        <source src="/play-audio?type=word" type="audio/mpeg">
-                                        您的瀏覽器不支援音訊播放。
-                                    </audio>
-                                </div>
-                            </div>
-
-                            <div class="result-card">
-                                <h3><i class="fas fa-book"></i> 相關詞語</h3>
-                                <div class="explanation-content">
-                                    {% set explanation_lines = explanation.split('\n') %}
-                                    {% for line in explanation_lines %}
-                                        {% if line.strip() %}
-                                            <div class="explanation-item">
-                                                {% if line[0:2] == '- ' %}
-                                                    <div class="explanation-bullet"><i class="fas fa-circle"></i></div>
-                                                    <div class="explanation-text">{{ line[2:] }}</div>
-                                                {% elif line[0].isdigit() and '. ' in line[:5] %}
-                                                    <div class="explanation-number">{{ line.split('. ')[0] }}</div>
-                                                    <div class="explanation-text">{{ line.split('. ', 1)[1] }}</div>
-                                                {% else %}
-                                                    <div class="explanation-text full-width">{{ line }}</div>
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </div>
-
-                            <div class="result-card">
-                                <h3><i class="fas fa-quote-right"></i> 單字例句</h3>
-                                <div class="examples-grid">
-                                    <div class="example">
-                                        <div class="example-header">
-                                            <i class="fas fa-quote-left"></i>
-                                            <span class="example-number">例句 1</span>
-                                        </div>
-                                        <p class="sentence">{{ examples.split('\n')[0] }}</p>
-                                        <p class="translation">{{ examples.split('\n')[1] }}</p>
-                                        <div class="audio-container">
-                                            <audio controls>
-                                                <source src="/play-audio?type=example1" type="audio/mpeg">
-                                                您的瀏覽器不支援音訊播放。
-                                            </audio>
-                                        </div>
-                                    </div>
-                                    <div class="example">
-                                        <div class="example-header">
-                                            <i class="fas fa-quote-left"></i>
-                                            <span class="example-number">例句 2</span>
-                                        </div>
-                                        <p class="sentence">{{ examples.split('\n')[3] }}</p>
-                                        <p class="translation">{{ examples.split('\n')[4] }}</p>
-                                        <div class="audio-container">
-                                            <audio controls>
-                                                <source src="/play-audio?type=example2" type="audio/mpeg">
-                                                您的瀏覽器不支援音訊播放。
-                                            </audio>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="result-container" id="result-container" style="display: none;">
+                            <!-- 翻譯結果將由JavaScript動態生成 -->
                         </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>

@@ -66,6 +66,28 @@
             <div id="lessonSelectionSection" style="display: none;">
                 <button class="btn btn-secondary mb-3" id="backToThemesBtn"><i class="fas fa-arrow-left"></i> 返回主題</button>
                 <h2 class="section-title" id="currentThemeTitle"></h2>
+                
+                <!-- 狀態說明 -->
+                <div class="status-legend mb-4">
+                    <div class="legend-container">
+                        <h4 class="legend-title">課程狀態說明</h4>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <div class="legend-color yellow"></div>
+                                <span>黃色框框：學習中（尚未完成測驗）</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color green"></div>
+                                <span>綠色框框：已完成（通過測驗）</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color gray"></div>
+                                <span>灰色框框：尚未開始學習</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row" id="lessonCardsContainer">
                     <!-- 課次卡片將由 JavaScript 動態生成 -->
                 </div>

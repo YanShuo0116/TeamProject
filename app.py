@@ -15,7 +15,7 @@ import random
 from datetime import datetime
 from auth import auth_bp
 from admin import admin_bp
-from models import User, VocabularyProgress, LessonProgress, Vocabulary, LearningRecord, QuizAttempt, QuizQuestion
+from models import User, VocabularyProgress, LessonProgress, Vocabulary, LearningRecord, QuizAttempt, QuizQuestion, TranslationRecord
 
 #小小設定一下
 lock = threading.Lock()
@@ -140,7 +140,15 @@ Limit
         explanation_response = model.generate_content(explanation_prompt).text
 
         # 3. 例句
-        example_prompt = f"""請提供 2 個使用單字 '{word}' 的簡短例句，並附上<繁體中文>翻譯,以下為你輸出範例(例句1翻譯和例句2中間空一行 總共只能有五行),無需輸出＊符號。
+        example_prompt = f"""請提供 2 個使用單字 '{word}' 的簡短例句，並附上繁體中文翻譯。請嚴格按照以下格式輸出，無需輸出＊符號：
+
+例句1的英文句子
+翻譯: 例句1的中文翻譯
+
+例句2的英文句子  
+翻譯: 例句2的中文翻譯
+
+範例格式：
 The speed limit on this road is 50 km/h.
 翻譯: 這條道路的限速是每小時50公里。
 
@@ -219,20 +227,159 @@ def update_accent():
 
 
 
-@app.route("/translator", methods=["GET", "POST"])
+@app.route("/translator", methods=["GET"])
 def translator():
-    translation, explanation, examples = None, None, None
-    if request.method == "POST":
-        word = request.form.get("word", "").strip()
-        if word:
-            with lock:
-                time.sleep(0.5)  
-                translation, explanation, examples = translate_word(word)
+    return render_template('translator.html')
+
+# 翻譯相關 API
+@app.route("/api/translate", methods=["POST"])
+def api_translate():
+    import uuid
     
-    return render_template('translator.html', translation=translation, explanation=explanation, examples=examples)
+    data = request.get_json()
+    word = data.get('word', '').strip()
+    
+    if not word:
+        return jsonify({'error': 'Word is required'}), 400
+    
+    # 生成唯一的session_id
+    session_id = str(uuid.uuid4())
+    
+    # 創建翻譯記錄
+    translation_record = TranslationRecord(
+        session_id=session_id,
+        user_id=current_user.id if current_user.is_authenticated else None,
+        word=word,
+        status='processing'
+    )
+    db.session.add(translation_record)
+    db.session.commit()
+    
+    # 啟動背景翻譯任務
+    import threading
+    thread = threading.Thread(target=process_translation, args=(translation_record.id,))
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({
+        'session_id': session_id,
+        'status': 'processing',
+        'message': '翻譯處理中，請稍候...'
+    })
 
+@app.route("/api/translation_status/<session_id>", methods=["GET"])
+def get_translation_status(session_id):
+    translation_record = TranslationRecord.query.filter_by(session_id=session_id).first()
+    
+    if not translation_record:
+        return jsonify({'error': 'Translation not found'}), 404
+    
+    response_data = {
+        'session_id': session_id,
+        'word': translation_record.word,
+        'status': translation_record.status,
+        'created_at': translation_record.created_at.isoformat()
+    }
+    
+    if translation_record.status == 'completed':
+        response_data.update({
+            'translation': translation_record.translation,
+            'explanation': translation_record.explanation,
+            'examples': translation_record.examples,
+            'completed_at': translation_record.completed_at.isoformat()
+        })
+    elif translation_record.status == 'failed':
+        response_data['error_message'] = '翻譯失敗，請稍後再試'
+    
+    return jsonify(response_data)
 
+def process_translation(record_id):
+    """背景處理翻譯的函數"""
+    with app.app_context():  # 添加應用上下文
+        try:
+            # 使用 session.get 替代 query.get
+            translation_record = db.session.get(TranslationRecord, record_id)
+            if not translation_record:
+                print(f"Translation record {record_id} not found")
+                return
+            
+            print(f"Processing translation for word: {translation_record.word}")
+            
+            # 執行翻譯
+            translation, explanation, examples = translate_word(translation_record.word)
+            
+            print(f"Translation completed for word: {translation_record.word}")
+            
+            # 更新記錄
+            translation_record.translation = translation
+            translation_record.explanation = explanation
+            translation_record.examples = examples
+            translation_record.status = 'completed'
+            translation_record.completed_at = datetime.now()
+            
+            db.session.commit()
+            print(f"Translation record {record_id} updated successfully")
+            
+        except Exception as e:
+            print(f"Translation processing error: {e}")
+            print(f"Error traceback: {traceback.format_exc()}")
+            try:
+                # 使用 session.get 替代 query.get
+                translation_record = db.session.get(TranslationRecord, record_id)
+                if translation_record:
+                    translation_record.status = 'failed'
+                    translation_record.completed_at = datetime.now()
+                    db.session.commit()
+                    print(f"Translation record {record_id} marked as failed")
+            except Exception as commit_error:
+                print(f"Failed to update error status: {commit_error}")
+                db.session.rollback()
 
+# 清理舊翻譯記錄的API（管理員使用）
+@app.route("/api/cleanup_translations", methods=["POST"])
+def cleanup_translations():
+    if not current_user.is_authenticated or current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        # 刪除7天前的翻譯記錄
+        from datetime import timedelta
+        cutoff_date = datetime.now() - timedelta(days=7)
+        
+        deleted_count = TranslationRecord.query.filter(
+            TranslationRecord.created_at < cutoff_date
+        ).delete()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'deleted_count': deleted_count,
+            'message': f'已清理 {deleted_count} 筆舊翻譯記錄'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'清理失敗: {str(e)}'}), 500
+
+# 自動清理函數（可以設定定時執行）
+def auto_cleanup_translations():
+    """自動清理超過24小時的翻譯記錄"""
+    with app.app_context():  # 添加應用上下文
+        try:
+            from datetime import timedelta
+            cutoff_date = datetime.now() - timedelta(hours=24)
+            
+            deleted_count = TranslationRecord.query.filter(
+                TranslationRecord.created_at < cutoff_date
+            ).delete()
+            
+            db.session.commit()
+            print(f"Auto cleanup: deleted {deleted_count} translation records")
+            
+        except Exception as e:
+            print(f"Auto cleanup error: {e}")
+            db.session.rollback()
 
 @app.route("/ai-teacher", methods=["GET", "POST"])
 def ai_teacher():
@@ -347,7 +494,11 @@ def get_words_by_category(category):
 @app.route("/api/update_word_progress", methods=["POST"])
 def update_word_progress():
     if not current_user.is_authenticated:
-        return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify({
+            'error': 'User not authenticated',
+            'message': '請登入帳號以保存學習進度',
+            'redirect': '/login'
+        }), 401
     
     data = request.get_json()
     word = data.get('word')
@@ -423,11 +574,9 @@ def update_word_progress():
         lesson_progress.learned_words = learned_count
         lesson_progress.last_studied = datetime.now()
         
-        # 檢查是否完成課程 (需要學習所有單字)
-        if learned_count >= lesson_progress.total_words and lesson_progress.total_words > 0:
-            lesson_progress.is_completed = True
-            if not lesson_progress.completion_date:
-                lesson_progress.completion_date = datetime.now()
+        # 檢查是否完成課程 (需要學習所有單字並通過測驗)
+        # 只有通過測驗才能標記為完成，這裡不自動標記為完成
+        # lesson_progress.is_completed 只能通過測驗API來設置
     
     # 記錄學習活動
     learning_record = LearningRecord(
@@ -462,7 +611,11 @@ def get_lesson_word_count(theme, lesson):
 @app.route("/api/lesson_progress", methods=["GET"])
 def get_lesson_progress():
     if not current_user.is_authenticated:
-        return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify({
+            'error': 'User not authenticated',
+            'message': '請登入帳號以查看學習進度',
+            'redirect': '/login'
+        }), 401
     
     theme = request.args.get('theme')
     lesson = request.args.get('lesson')
@@ -509,11 +662,57 @@ def get_lesson_progress():
         
         return jsonify(progress_data)
 
+@app.route("/api/quiz_status", methods=["GET"])
+def get_quiz_status():
+    if not current_user.is_authenticated:
+        return jsonify({
+            'error': 'User not authenticated',
+            'message': '請登入帳號以查看測驗狀態',
+            'redirect': '/login'
+        }), 401
+    
+    theme = request.args.get('theme')
+    lesson = request.args.get('lesson')
+    
+    if not theme or not lesson:
+        return jsonify({'error': 'Theme and lesson are required'}), 400
+    
+    # 檢查是否有進行中的測驗
+    in_progress_quiz = QuizAttempt.query.filter_by(
+        user_id=current_user.id,
+        theme_name=theme,
+        lesson_name=lesson,
+        status='in_progress'
+    ).first()
+    
+    # 檢查是否有已完成且通過的測驗
+    passed_quiz = QuizAttempt.query.filter_by(
+        user_id=current_user.id,
+        theme_name=theme,
+        lesson_name=lesson,
+        status='completed',
+        is_passed=True
+    ).first()
+    
+    quiz_status = {
+        'has_passed': passed_quiz is not None,
+        # 移除了進行中測驗的相關字段，因為不再支持繼續測驗
+        # 'has_in_progress': in_progress_quiz is not None,
+        # 'in_progress_quiz_id': in_progress_quiz.id if in_progress_quiz else None,
+        # 'can_start_quiz': in_progress_quiz is None
+    }
+    
+    return jsonify(quiz_status)
+
 # 測驗相關 API
 @app.route("/api/start_quiz", methods=["POST"])
 def start_quiz():
     if not current_user.is_authenticated:
-        return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify({
+            'error': 'User not authenticated',
+            'message': '測驗前請登入帳號以保存紀錄',
+            'redirect': '/login'
+        }), 401
     
     data = request.get_json()
     theme = data.get('theme')
@@ -521,6 +720,19 @@ def start_quiz():
     
     if not theme or not lesson:
         return jsonify({'error': 'Theme and lesson are required'}), 400
+    
+    # 檢查是否有未完成的測驗，直接標記為放棄
+    existing_quizzes = QuizAttempt.query.filter_by(
+        user_id=current_user.id,
+        theme_name=theme,
+        lesson_name=lesson,
+        status='in_progress'
+    ).all()
+    
+    # 將所有進行中的測驗標記為放棄
+    for existing_quiz in existing_quizzes:
+        existing_quiz.status = 'abandoned'
+        existing_quiz.completed_at = datetime.now()
     
     # 獲取該課程的所有已學習單字（排除有問題的資料）
     learned_words = db.session.query(Vocabulary).join(VocabularyProgress).filter(
@@ -548,6 +760,7 @@ def start_quiz():
         theme_name=theme,
         lesson_name=lesson,
         total_questions=len(learned_words),
+        status='in_progress',
         started_at=datetime.now()
     )
     db.session.add(quiz_attempt)
@@ -576,7 +789,11 @@ def start_quiz():
 @app.route("/api/get_quiz_question/<int:quiz_id>/<int:question_index>", methods=["GET"])
 def get_quiz_question(quiz_id, question_index):
     if not current_user.is_authenticated:
-        return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify({
+            'error': 'User not authenticated',
+            'message': '請登入帳號以繼續測驗',
+            'redirect': '/login'
+        }), 401
     
     # 獲取測驗嘗試
     quiz_attempt = QuizAttempt.query.filter_by(
@@ -774,7 +991,11 @@ def generate_chinese_options(correct_word, theme_name, lesson_name):
 @app.route("/api/submit_quiz_answer", methods=["POST"])
 def submit_quiz_answer():
     if not current_user.is_authenticated:
-        return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify({
+            'error': 'User not authenticated',
+            'message': '請登入帳號以提交答案',
+            'redirect': '/login'
+        }), 401
     
     data = request.get_json()
     question_id = data.get('question_id')
@@ -824,7 +1045,11 @@ def submit_quiz_answer():
 @app.route("/api/complete_quiz/<int:quiz_id>", methods=["POST"])
 def complete_quiz(quiz_id):
     if not current_user.is_authenticated:
-        return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify({
+            'error': 'User not authenticated',
+            'message': '請登入帳號以完成測驗',
+            'redirect': '/login'
+        }), 401
     
     # 獲取測驗嘗試
     quiz_attempt = QuizAttempt.query.filter_by(
@@ -834,6 +1059,10 @@ def complete_quiz(quiz_id):
     
     if not quiz_attempt:
         return jsonify({'error': 'Quiz not found'}), 404
+    
+    # 檢查測驗狀態
+    if quiz_attempt.status != 'in_progress':
+        return jsonify({'error': 'Quiz is not in progress'}), 400
     
     # 計算正確答案數
     correct_answers = QuizQuestion.query.filter_by(
@@ -854,6 +1083,7 @@ def complete_quiz(quiz_id):
     quiz_attempt.correct_answers = correct_answers
     quiz_attempt.is_passed = is_passed
     quiz_attempt.completion_time = completion_time
+    quiz_attempt.status = 'completed'
     quiz_attempt.completed_at = datetime.now()
     
     # 只有通過測驗才更新課程進度為完成
@@ -1054,6 +1284,19 @@ def start_ngrok():
 if __name__ == "__main__":
     # 啟動 ngrok 以提供公開網址
     start_ngrok()
+    
+    # 啟動定時清理任務
+    import threading
+    import time
+    
+    def cleanup_scheduler():
+        while True:
+            time.sleep(3600)  # 每小時執行一次
+            auto_cleanup_translations()
+    
+    cleanup_thread = threading.Thread(target=cleanup_scheduler)
+    cleanup_thread.daemon = True
+    cleanup_thread.start()
 
     # 啟動 Flask
     app.run(host='0.0.0.0', port=8000)

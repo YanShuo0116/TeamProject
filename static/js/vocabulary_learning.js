@@ -61,9 +61,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/lesson_progress');
             if (response.ok) {
                 lessonProgressData = await response.json();
+            } else {
+                const data = await response.json();
+                if (response.status === 401) {
+                    // 未登入狀態，使用空的進度數據
+                    lessonProgressData = {};
+                    console.log('用戶未登入，使用空的進度數據');
+                } else {
+                    console.error('載入學習進度失敗:', data.message || data.error);
+                }
             }
         } catch (error) {
             console.error('載入學習進度失敗:', error);
+            // 出錯時使用空的進度數據
+            lessonProgressData = {};
         }
     }
 
@@ -118,16 +129,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 為主題卡片添加點擊事件
         document.querySelectorAll('.selection-card[data-theme]').forEach(card => {
-            card.addEventListener('click', (event) => {
+            card.addEventListener('click', async (event) => {
                 const themeName = event.currentTarget.dataset.theme;
                 selectedTheme = allThemesData.find(theme => theme.theme_name === themeName);
-                displayLessons(selectedTheme);
+                await displayLessons(selectedTheme);
             });
         });
     }
 
     // 顯示課次卡片
-    function displayLessons(theme) {
+    async function displayLessons(theme) {
         themeSelectionSection.style.display = 'none';
         lessonSelectionSection.style.display = 'block';
         wordCardSection.style.display = 'none';
@@ -135,18 +146,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentThemeTitle.textContent = theme.theme_name;
         lessonCardsContainer.innerHTML = '';
-        theme.lessons.forEach(lesson => {
+        
+        // 為每個課程檢查測驗狀態
+        for (const lesson of theme.lessons) {
             const progressKey = `${theme.theme_name}_${lesson}`;
             const lessonProgress = lessonProgressData[progressKey];
             
-            const isCompleted = lessonProgress && lessonProgress.is_completed;
+            // 檢查測驗狀態
+            let quizStatus = null;
+            try {
+                const response = await fetch(`/api/quiz_status?theme=${encodeURIComponent(theme.theme_name)}&lesson=${encodeURIComponent(lesson)}`);
+                if (response.ok) {
+                    quizStatus = await response.json();
+                } else if (response.status === 401) {
+                    // 未登入狀態，使用預設的測驗狀態
+                    quizStatus = {
+                        has_passed: false
+                    };
+                }
+            } catch (error) {
+                console.error('獲取測驗狀態失敗:', error);
+            }
+            
+            // 根據測驗狀態和學習進度決定顯示狀態
+            let completionClass = '';
+            let statusBadge = '';
+            
+            if (quizStatus && quizStatus.has_passed) {
+                // 已通過測驗 - 綠色
+                completionClass = 'completed';
+                statusBadge = '<div class="completion-badge">✓ 已完成</div>';
+            } else if (lessonProgress && lessonProgress.progress_percentage > 0) {
+                // 有學習進度但未通過測驗 - 黃色
+                completionClass = 'in-progress';
+                // 移除了測驗中的徽章顯示，因為不再支持繼續測驗
+            }
+            // 否則保持預設樣式（灰色）
+            
             const progressPercentage = lessonProgress ? lessonProgress.progress_percentage : 0;
             
             const colDiv = document.createElement('div');
             colDiv.className = 'col-md-4 mb-4';
-            
-            const completionClass = isCompleted ? 'completed' : 
-                                  progressPercentage > 0 ? 'in-progress' : '';
             
             colDiv.innerHTML = `
                 <div class="selection-card ${completionClass}" data-lesson="${lesson}">
@@ -158,11 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="progress-text">${Math.round(progressPercentage)}% 完成</span>
                         ${lessonProgress ? `<span class="word-count">${lessonProgress.learned_words}/${lessonProgress.total_words} 單字</span>` : ''}
                     </div>
-                    ${isCompleted ? '<div class="completion-badge">✓ 已完成</div>' : ''}
+                    ${statusBadge}
                 </div>
             `;
             lessonCardsContainer.appendChild(colDiv);
-        });
+        }
 
         // 為課次卡片添加點擊事件
         document.querySelectorAll('.selection-card[data-lesson]').forEach(card => {
@@ -357,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h2>🎉 恭喜完成所有單字學習！</h2>
                 <p>現在需要通過測驗才能完成這個課程</p>
                 <div class="quiz-info">
-                    <p><i class="fas fa-info-circle"></i> 測驗包含3種題型：</p>
+                    <p><i class="fas fa-info-circle"></i> 測驗包含3種題型(隨機題型)：</p>
                     <ul>
                         <li>看中文選英文（有圖片提示）</li>
                         <li>看英文選中文（有圖片提示）</li>
@@ -382,15 +422,29 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 添加事件監聽器
         document.getElementById('startQuizBtn').addEventListener('click', startQuiz);
-        document.getElementById('backToLessonsFromQuiz').addEventListener('click', () => {
+        document.getElementById('backToLessonsFromQuiz').addEventListener('click', async () => {
             quizContainer.remove();
-            displayLessons(selectedTheme);
+            await displayLessons(selectedTheme);
         });
     }
 
     // 開始測驗
     async function startQuiz() {
         try {
+            // 先檢查測驗狀態
+            const statusResponse = await fetch(`/api/quiz_status?theme=${encodeURIComponent(currentThemeName)}&lesson=${encodeURIComponent(currentLessonName)}`);
+            if (statusResponse.ok) {
+                const quizStatus = await statusResponse.json();
+                
+                if (quizStatus.has_passed) {
+                    alert('您已經通過了這個課程的測驗！');
+                    return;
+                }
+                
+                // 如果有進行中的測驗，直接開始新測驗（舊測驗會被自動標記為放棄）
+                // 移除了詢問用戶是否繼續的邏輯，避免潛在的bug
+            }
+            
             const response = await fetch('/api/start_quiz', {
                 method: 'POST',
                 headers: {
@@ -414,7 +468,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 開始測驗
                 showQuizInterface(data.quiz_id, data.total_questions);
             } else {
-                alert('開始測驗失敗：' + data.error);
+                // 處理未登入狀態
+                if (response.status === 401 && data.redirect) {
+                    showLoginPrompt(data.message, data.redirect);
+                } else {
+                    alert('開始測驗失敗：' + (data.message || data.error));
+                }
             }
         } catch (error) {
             console.error('開始測驗失敗:', error);
@@ -440,6 +499,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 console.log(`單字 ${word} 已標記為學習完成`);
+            } else {
+                const data = await response.json();
+                if (!handleApiError(response, data)) {
+                    console.error('更新學習進度失敗:', data.message || data.error);
+                }
             }
         } catch (error) {
             console.error('更新學習進度失敗:', error);
@@ -450,8 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
         displayThemes();
     });
 
-    backToLessonsBtn.addEventListener('click', () => {
-        displayLessons(selectedTheme);
+    backToLessonsBtn.addEventListener('click', async () => {
+        await displayLessons(selectedTheme);
     });
 
     // 測驗相關變數
@@ -504,7 +568,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayQuizQuestion(questionData);
                 updateQuizProgress();
             } else {
-                alert('載入問題失敗：' + questionData.error);
+                if (!handleApiError(response, questionData)) {
+                    alert('載入問題失敗：' + (questionData.message || questionData.error));
+                }
             }
         } catch (error) {
             console.error('載入問題失敗:', error);
@@ -669,7 +735,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 2000);
             } else {
-                alert('提交答案失敗：' + result.error);
+                if (!handleApiError(response, result)) {
+                    alert('提交答案失敗：' + (result.message || result.error));
+                }
             }
         } catch (error) {
             console.error('提交答案失敗:', error);
@@ -720,7 +788,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 showQuizResults(result);
             } else {
-                alert('完成測驗失敗：' + result.error);
+                if (!handleApiError(response, result)) {
+                    alert('完成測驗失敗：' + (result.message || result.error));
+                }
             }
         } catch (error) {
             console.error('完成測驗失敗:', error);
@@ -770,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('backToLessonsFromResults').addEventListener('click', async () => {
             quizContainer.remove();
             await loadLessonProgress(); // 重新載入進度
-            displayLessons(selectedTheme);
+            await displayLessons(selectedTheme);
         });
         
         if (!result.is_passed) {
@@ -779,6 +849,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 startQuiz();
             });
         }
+    }
+
+    // 顯示登入提示
+    function showLoginPrompt(message, redirectUrl) {
+        // 創建登入提示模態框
+        const loginPrompt = document.createElement('div');
+        loginPrompt.className = 'login-prompt-overlay';
+        loginPrompt.innerHTML = `
+            <div class="login-prompt-modal">
+                <div class="login-prompt-header">
+                    <h3><i class="fas fa-sign-in-alt"></i> 需要登入</h3>
+                </div>
+                <div class="login-prompt-body">
+                    <p>${message}</p>
+                    <div class="login-prompt-buttons">
+                        <button class="btn btn-primary" id="goToLogin">
+                            <i class="fas fa-sign-in-alt"></i> 前往登入
+                        </button>
+                        <button class="btn btn-secondary" id="cancelLogin">
+                            <i class="fas fa-times"></i> 取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(loginPrompt);
+        
+        // 添加事件監聽器
+        document.getElementById('goToLogin').addEventListener('click', () => {
+            // 保存當前頁面信息到 sessionStorage，登入後可以返回
+            sessionStorage.setItem('returnToPage', window.location.pathname);
+            sessionStorage.setItem('returnToTheme', currentThemeName);
+            sessionStorage.setItem('returnToLesson', currentLessonName);
+            
+            // 跳轉到登入頁面
+            window.location.href = redirectUrl;
+        });
+        
+        document.getElementById('cancelLogin').addEventListener('click', () => {
+            loginPrompt.remove();
+        });
+        
+        // 點擊背景關閉
+        loginPrompt.addEventListener('click', (e) => {
+            if (e.target === loginPrompt) {
+                loginPrompt.remove();
+            }
+        });
+    }
+
+    // 通用的API錯誤處理函數
+    function handleApiError(response, data) {
+        if (response.status === 401 && data.redirect) {
+            showLoginPrompt(data.message, data.redirect);
+            return true; // 表示已處理
+        }
+        return false; // 表示未處理，需要其他錯誤處理
     }
 
     // 初始化載入主題和課次

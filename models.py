@@ -88,6 +88,20 @@ class AdminLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     admin = db.relationship('User', backref=db.backref('admin_logs', lazy=True))
 
+class TranslationRecord(db.Model):
+    __tablename__ = 'translation_records'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(64), nullable=False, index=True)  # 用於識別翻譯請求
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # 可選，支援未登入用戶
+    word = db.Column(db.String(200), nullable=False)
+    translation = db.Column(db.Text, nullable=True)
+    explanation = db.Column(db.Text, nullable=True)
+    examples = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='processing')  # 'processing', 'completed', 'failed'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    user = db.relationship('User', backref=db.backref('translation_records', lazy=True))
+
 class QuizAttempt(db.Model):
     __tablename__ = 'quiz_attempts'
     id = db.Column(db.Integer, primary_key=True)
@@ -98,6 +112,7 @@ class QuizAttempt(db.Model):
     correct_answers = db.Column(db.Integer, nullable=False, default=0)
     is_passed = db.Column(db.Boolean, nullable=False, default=False)
     completion_time = db.Column(db.Integer, nullable=True)  # 完成時間（秒）
+    status = db.Column(db.String(20), nullable=False, default='in_progress')  # 'in_progress', 'completed', 'abandoned'
     started_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, nullable=True)
     user = db.relationship('User', backref=db.backref('quiz_attempts', lazy=True))
