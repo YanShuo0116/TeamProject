@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>創建新作文 - 英語作文教學助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/composition.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-nav">
+                <a href="{{ url_for('composition') }}" class="back-button">
+                    <i class="fas fa-arrow-left"></i> 返回作文列表
+                </a>
+                <div class="user-info">
+                    <span>歡迎，{{ current_user.username }}</span>
+                </div>
+            </div>
+            <h1>創建新作文</h1>
+            <p class="subtitle">循序漸進，提升寫作能力</p>
+        </header>
+
+        <div class="progress-bar">
+            <div class="step active" data-step="1">選擇主題</div>
+            <div class="step" data-step="2">段落規劃</div>
+            <div class="step" data-step="3">內文重點</div>
+            <div class="step" data-step="4">主題句</div>
+            <div class="step" data-step="5">完整作文</div>
+        </div>
+
+        <main>
+            <!-- 步驟 1: 選擇主題 -->
+            <section id="step1" class="step-content active">
+                <h2>第一步：選擇寫作主題</h2>
+                <p>請選擇您今天想要練習的寫作領域：</p>
+                
+                <div class="topic-grid">
+                    <button type="button" class="topic-btn" data-topic="school">
+                        <i class="fas fa-graduation-cap"></i>
+                        學校與學習
+                    </button>
+                    <button type="button" class="topic-btn" data-topic="life">
+                        <i class="fas fa-heart"></i>
+                        生活經歷
+                    </button>
+                    <button type="button" class="topic-btn" data-topic="growth">
+                        <i class="fas fa-seedling"></i>
+                        個人成長
+                    </button>
+                    <button type="button" class="topic-btn" data-topic="social">
+                        <i class="fas fa-users"></i>
+                        社會議題
+                    </button>
+                </div>
+                
+                <div class="custom-topic-section">
+                    <label for="custom-topic">或者，輸入你想寫的作文題目：</label>
+                    <div class="custom-topic-input">
+                        <input type="text" id="custom-topic" placeholder="例如：我的寵物、我的夢想、我最喜歡的季節...">
+                        <button type="button" id="set-custom-topic-btn" class="btn btn-primary">
+                            <i class="fas fa-check"></i> 確定
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="generated-topic" class="generated-content" style="display:none;">
+                    <h3>生成的作文題目：</h3>
+                    <p id="topic-text"></p>
+                    <button type="button" id="regenerate-topic-btn" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> 重新生成
+                    </button>
+                </div>
+                
+                <div class="loading" id="topic-loading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> 正在生成題目...
+                </div>
+            </section>
+
+            <!-- 步驟 2: 確定段落主題 -->
+            <section id="step2" class="step-content">
+                <h2>第二步：段落規劃（引言、內文、結論）</h2>
+                <div id="current-topic" class="current-topic-display" style="display:none;">
+                    <h3>📝 你的作文題目：<span id="topic-display"></span></h3>
+                </div>
+                <p>請想想看，關於這個題目，你想要寫哪些內容？每一格寫一個想法：</p>
+                
+                <div class="keywords-input-grid">
+                    <div class="keyword-input-item">
+                        <label>第一個想法：</label>
+                        <input type="text" id="keyword-1" placeholder="例如：外觀、顏色...">
+                    </div>
+                    <div class="keyword-input-item">
+                        <label>第二個想法：</label>
+                        <input type="text" id="keyword-2" placeholder="例如：個性、習慣...">
+                    </div>
+                    <div class="keyword-input-item">
+                        <label>第三個想法：</label>
+                        <input type="text" id="keyword-3" placeholder="例如：喜歡做的事...">
+                    </div>
+                    <div class="keyword-input-item">
+                        <label>第四個想法：</label>
+                        <input type="text" id="keyword-4" placeholder="例如：特別的回憶...">
+                    </div>
+                    <div class="keyword-input-item">
+                        <label>第五個想法：</label>
+                        <input type="text" id="keyword-5" placeholder="例如：我的感受...">
+                    </div>
+                </div>
+                
+                <button type="button" id="generate-themes-btn" class="btn btn-primary">
+                    <i class="fas fa-magic"></i> 請AI老師幫我整理段落
+                </button>
+                
+                <div class="loading" id="themes-loading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> AI老師正在整理中...
+                </div>
+                
+                <div id="paragraph-themes" class="generated-content" style="display:none;">
+                    <h3>🤖 AI老師的建議段落安排：</h3>
+                    <div id="themes-list"></div>
+                    <p class="ai-helper-note">💡 這些是AI老師的建議，你可以參考這些想法來寫作文！</p>
+                </div>
+            </section>
+
+            <!-- 步驟 3: 關鍵點 -->
+            <section id="step3" class="step-content">
+                <h2>第三步：內文重點（用英文描述每段要點）</h2>
+                <div id="current-topic-step3" class="current-topic-display" style="display:none;">
+                    <h3>📝 你的作文題目：<span id="topic-display-step3"></span></h3>
+                </div>
+                <p>根據剛才的段落安排，請用英文寫出每段的重點內容：</p>
+                
+                <div id="paragraph-themes-display" class="generated-content" style="display:none;">
+                    <h3>📋 段落安排參考：</h3>
+                    <div id="themes-display"></div>
+                </div>
+                
+                <button type="button" id="generate-keypoints-btn" class="btn btn-secondary">
+                    <i class="fas fa-lightbulb"></i> 請AI老師給我重點建議
+                </button>
+                
+                <div class="loading" id="keypoints-loading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> AI老師正在想建議...
+                </div>
+                
+                <div id="key-points" class="generated-content" style="display:none;">
+                    <h3>🤖 AI老師的英文詞彙建議：</h3>
+                    <div id="keypoints-list"></div>
+                    <p class="ai-helper-note">💡 這些是AI老師提供的英文單字和短句，點擊下方按鈕可以匯入！</p>
+                </div>
+                
+                <div id="keypoints-editor-manual">
+                    <div class="sentence-editor">
+                        <label for="keypoint-1">第1段重點（引言）：</label>
+                        <textarea id="keypoint-1" class="sentence-input" placeholder="請用英文寫下引言段落的重點內容..."></textarea>
+                        <button type="button" class="import-keypoint-btn" data-paragraph="1">
+                            <i class="fas fa-download"></i> 匯入AI詞彙
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="keypoint-2">第2段重點（內文一）：</label>
+                        <textarea id="keypoint-2" class="sentence-input" placeholder="請用英文寫下第一個內文段落的重點內容..."></textarea>
+                        <button type="button" class="import-keypoint-btn" data-paragraph="2">
+                            <i class="fas fa-download"></i> 匯入AI詞彙
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="keypoint-3">第3段重點（內文二）：</label>
+                        <textarea id="keypoint-3" class="sentence-input" placeholder="請用英文寫下第二個內文段落的重點內容..."></textarea>
+                        <button type="button" class="import-keypoint-btn" data-paragraph="3">
+                            <i class="fas fa-download"></i> 匯入AI詞彙
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="keypoint-4">第4段重點（內文三）：</label>
+                        <textarea id="keypoint-4" class="sentence-input" placeholder="請用英文寫下第三個內文段落的重點內容..."></textarea>
+                        <button type="button" class="import-keypoint-btn" data-paragraph="4">
+                            <i class="fas fa-download"></i> 匯入AI詞彙
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="keypoint-5">第5段重點（結論）：</label>
+                        <textarea id="keypoint-5" class="sentence-input" placeholder="請用英文寫下結論段落的重點內容..."></textarea>
+                        <button type="button" class="import-keypoint-btn" data-paragraph="5">
+                            <i class="fas fa-download"></i> 匯入AI詞彙
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="loading" id="keypoints-loading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> AI老師正在想建議...
+                </div>
+            </section>
+
+            <!-- 步驟 4: 主題句 -->
+            <section id="step4" class="step-content">
+                <h2>第四步：主題句（每段的大意概念）</h2>
+                <div id="current-topic-step4" class="current-topic-display" style="display:none;">
+                    <h3>📝 你的作文題目：<span id="topic-display-step4"></span></h3>
+                </div>
+                
+                <div class="ai-sentences-section">
+                    <button type="button" id="generate-sentences-btn" class="btn btn-secondary">
+                        <i class="fas fa-robot"></i> 請AI老師準備主題句範本
+                    </button>
+                    
+                    <div class="loading" id="sentences-loading" style="display:none;">
+                        <i class="fas fa-spinner fa-spin"></i> AI老師正在想例子...
+                    </div>
+                    
+                    <div id="topic-sentences-section" class="generated-content" style="display:none;">
+                        <h3>🤖 AI老師的主題句範本：</h3>
+                        <p class="instruction-note">💡 這些是根據你的重點內容生成的主題句範本，你可以參考或自己創作！</p>
+                        <div id="sentences-examples">
+                            <!-- 動態生成的主題句例子 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <p>請寫出每段的主題句（表達每段的大意概念）：</p>
+                
+                <div id="sentences-editor-manual">
+                    <div class="sentence-editor">
+                        <label for="sentence-1">引言主題句：</label>
+                        <textarea id="sentence-1" class="sentence-input" placeholder="請寫下引言段落的主題句（表達引言的大意概念）..."></textarea>
+                        <button type="button" class="import-sentence-btn" data-paragraph="1">
+                            <i class="fas fa-magic"></i> 匯入AI範本
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="sentence-2">內文一主題句：</label>
+                        <textarea id="sentence-2" class="sentence-input" placeholder="請寫下內文一段落的主題句（表達內文一的大意概念）..."></textarea>
+                        <button type="button" class="import-sentence-btn" data-paragraph="2">
+                            <i class="fas fa-magic"></i> 匯入AI範本
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="sentence-3">內文二主題句：</label>
+                        <textarea id="sentence-3" class="sentence-input" placeholder="請寫下內文二段落的主題句（表達內文二的大意概念）..."></textarea>
+                        <button type="button" class="import-sentence-btn" data-paragraph="3">
+                            <i class="fas fa-magic"></i> 匯入AI範本
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="sentence-4">內文三主題句：</label>
+                        <textarea id="sentence-4" class="sentence-input" placeholder="請寫下內文三段落的主題句（表達內文三的大意概念）..."></textarea>
+                        <button type="button" class="import-sentence-btn" data-paragraph="4">
+                            <i class="fas fa-magic"></i> 匯入AI範本
+                        </button>
+                    </div>
+                    <div class="sentence-editor">
+                        <label for="sentence-5">結論主題句：</label>
+                        <textarea id="sentence-5" class="sentence-input" placeholder="請寫下結論段落的主題句（表達結論的大意概念）..."></textarea>
+                        <button type="button" class="import-sentence-btn" data-paragraph="5">
+                            <i class="fas fa-magic"></i> 匯入AI範本
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步驟 5: 作文總覽 -->
+            <section id="step5" class="step-content">
+                <h2>第五步：完整作文（引言+內文+結論）</h2>
+                <div id="current-topic-step5" class="current-topic-display" style="display:none;">
+                    <h3>📝 你的作文題目：<span id="topic-display-step5"></span></h3>
+                </div>
+                <p>太棒了！現在把你寫的主題句組合起來，然後請你自行完整作文：</p>
+                
+                <button type="button" id="generate-essay-btn" class="btn btn-primary">
+                    <i class="fas fa-file-alt"></i> 組合主題句
+                </button>
+                
+                <div id="essay-editor-section" class="generated-content" style="display:none;">
+                    <h3>📝 請自行完整你的作文：</h3>
+                    <p class="instruction-note">💡 上方是你的主題句組合，請擴展成完整的作文段落！</p>
+                    <textarea id="essay-editor" class="essay-editor" placeholder="你的主題句會出現在這裡，請擴展成完整作文..."></textarea>
+                    
+                    <div class="essay-actions">
+                        <button type="button" id="refine-essay-btn" class="btn btn-secondary">
+                            <i class="fas fa-edit"></i> AI老師完整或潤飾
+                        </button>
+                        <button type="button" id="restore-essay-btn" class="btn btn-warning" style="display:none;">
+                            <i class="fas fa-undo"></i> 恢復潤飾前版本
+                        </button>
+                        <button type="button" id="get-feedback-btn" class="btn btn-primary">
+                            <i class="fas fa-comment"></i> 獲得評語和翻譯
+                        </button>
+                        <button type="button" id="save-essay-btn" class="btn btn-success">
+                            <i class="fas fa-save"></i> 儲存我的作文
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="final-essay" class="generated-content" style="display:none;">
+                    <h3>📖 中文翻譯：</h3>
+                    <div id="essay-translation" class="translation-display"></div>
+                    
+                    <h3>🤖 AI老師的評語：</h3>
+                    <div id="essay-evaluation" class="evaluation-display"></div>
+                    
+                    <div id="refined-essay" class="refined-content" style="display:none;">
+                        <h3>✨ 修改後的作文：</h3>
+                        <div id="refined-content" class="essay-display"></div>
+                        <h3>📖 修改後的中文翻譯：</h3>
+                        <div id="refined-translation" class="translation-display"></div>
+                    </div>
+                </div>
+                
+                <div class="loading" id="essay-loading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> 正在組合你的作文...
+                </div>
+            </section>
+
+            <!-- 導航按鈕 -->
+            <div class="navigation">
+                <button type="button" id="prev-btn" class="btn btn-secondary" disabled>
+                    <i class="fas fa-chevron-left"></i> 上一步
+                </button>
+                <button type="button" id="next-btn" class="btn btn-primary" disabled>
+                    下一步 <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/composition_new.js') }}"></script>
+</body>
+</html>

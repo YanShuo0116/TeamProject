@@ -1,6 +1,6 @@
 #語音小BUG 再次生成不會覆蓋
-from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for, flash
-from flask_login import LoginManager, current_user
+from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for, flash, session
+from flask_login import LoginManager, current_user, login_required
 from pyngrok import ngrok
 import traceback
 import time
@@ -15,7 +15,7 @@ import random
 from datetime import datetime
 from auth import auth_bp
 from admin import admin_bp
-from models import User, VocabularyProgress, LessonProgress, Vocabulary, LearningRecord, QuizAttempt, QuizQuestion, TranslationRecord
+from models import User, VocabularyProgress, LessonProgress, Vocabulary, LearningRecord, QuizAttempt, QuizQuestion, TranslationRecord, Composition
 
 #小小設定一下
 lock = threading.Lock()
@@ -23,7 +23,7 @@ Us_uk="us"
 
 # 配置API                                                                            #README.MD裡有網址
 ngrok.set_auth_token("2ywXahUIQ4BEQlBrwDT4DZ5B7xg_2B3tbiXUwG9YS9oqgcfxm")     # 替換為你的 ngrok 金鑰!!!!!!!!!!!!
-genai.configure(api_key='AIzaSyAWsd4l5j35qjTEnag79enNkMdYp64djDY')            # 替換為你的 gemini   金鑰!!!!!!!!!  
+genai.configure(api_key='AIzaSyDo3-S0kOSPo9O99cTolLQUv3-x3Ebq3kM')            # 替換為你的 gemini   金鑰!!!!!!!!!  
 
 PEXELS_API_KEY = "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr" # 替換為你的 Pexels API 金鑰
 pexels_api = Pexels(PEXELS_API_KEY)
@@ -60,8 +60,7 @@ app.register_blueprint(admin_bp)
 def forbidden(error):
     return render_template('unauthorized.html'), 403
 
-#作文資料紀錄
-composition_data = {}
+# 作文相關的輔助函數
 
 def get_image_from_pexels(query):
     try:
@@ -1123,29 +1122,86 @@ def complete_quiz(quiz_id):
 # 確保音檔目錄
 os.makedirs('audio_files', exist_ok=True)
 #作文區
+# 預設作文題目，避免使用AI生成
+ESSAY_TOPICS = {
+    'school': [
+        'My School Life', 'My Favorite Subject', 'My Best Teacher', 'School Activities I Enjoy',
+        'My Classroom', 'A Typical School Day', 'My Study Habits', 'School Friends',
+        'My Favorite School Memory', 'Learning English at School', 'School Lunch Time',
+        'My Dream School', 'Homework and Me', 'School Sports Day', 'My School Library',
+        'Group Projects at School', 'School Rules', 'My First Day at School', 'School Uniform',
+        'After School Activities'
+    ],
+    'life': [
+        'My Daily Routine', 'A Special Day', 'My Weekend', 'My Hobby', 'My Favorite Food',
+        'A Memorable Trip', 'My Birthday Party', 'My Summer Vacation', 'My Family Tradition',
+        'A Day I Will Never Forget', 'My Favorite Holiday', 'My Morning Routine', 'My Free Time',
+        'A Fun Experience', 'My Favorite Place', 'My Best Friend', 'A Happy Memory',
+        'My Favorite Season', 'A Rainy Day', 'My Dream Vacation'
+    ],
+    'growth': [
+        'My Growth This Year', 'What I Learned', 'My Goals for the Future', 'A Challenge I Overcame',
+        'How I Changed', 'My Dreams and Aspirations', 'A Lesson I Learned', 'My Personal Achievement',
+        'What Makes Me Proud', 'My Strengths and Weaknesses', 'A Mistake I Made', 'My Role Model',
+        'How I Handle Problems', 'My Future Plans', 'What Success Means to Me', 'My Personal Values',
+        'A Time I Helped Someone', 'My Biggest Fear', 'What Motivates Me', 'My Life Philosophy'
+    ],
+    'social': [
+        'Helping Others', 'Environmental Protection', 'Technology in Our Lives', 'The Importance of Friendship',
+        'Social Media and Me', 'Community Service', 'Cultural Differences', 'The Value of Honesty',
+        'Teamwork', 'Respect for Others', 'The Importance of Family', 'Kindness Matters',
+        'Being a Good Citizen', 'The Power of Communication', 'Dealing with Bullying',
+        'The Importance of Education', 'Healthy Lifestyle', 'Time Management', 'Being Responsible',
+        'The Impact of Music'
+    ]
+}
+
 def generate_essay_topic(topic):
+    """從預設題目中隨機選擇，不使用AI生成"""
+    import random
     try:
-        prompt = f"請根據以下領域 '{topic}' 生成一個適合高中程度的英文作文題目 (你不能輸出＊字符號)，只返回題目本身不需要額外文字。"
-        response = model.generate_content(prompt).text.strip()
-        return response
+        if topic in ESSAY_TOPICS:
+            return random.choice(ESSAY_TOPICS[topic])
+        else:
+            # 如果類別不存在，從所有題目中隨機選擇
+            all_topics = []
+            for topic_list in ESSAY_TOPICS.values():
+                all_topics.extend(topic_list)
+            return random.choice(all_topics)
     except Exception:
-        print(f"Error generating essay topic for '{topic}': {traceback.format_exc()}")
-        return "無法生成題目，請稍後再試"
+        print(f"Error selecting essay topic for '{topic}': {traceback.format_exc()}")
+        return "My Daily Life"
+def generate_simple_paragraph_theme(essay_topic):
+    """生成簡化的段落主題，不使用AI"""
+    return f"""第一段（引言）: 介紹主題「{essay_topic}」並表達你的觀點
+第二段（內文一）: 描述第一個重要的想法或經驗
+第三段（內文二）: 分享第二個重要的想法或經驗
+第四段（內文三）: 說明第三個重要的想法或感受
+第五段（結論）: 總結你的想法並重申你的觀點"""
+
 def generate_paragraph_theme(topic, essay_topic, keywords):
     try:
-        prompt = f"""請根據以下領域 '{topic}'、作文題目 '{essay_topic}' 和關鍵字'{keywords}'，生成五個適合高中程度並符合以下段落敘述
-        （第1段： 介紹背景&引言，講述問題的重要性和爭議
-          第2段： 提出觀點一，列舉相關例子和證據支持該觀點
-          第3段： 提出觀點二，列舉相關例子和證據支持該觀點
-          第4段： 比較不同觀點的優缺點，提出自己所支持的觀點和理由
-          第5段： 總結觀點，重申問題的重要性和解決方式）
+        prompt = f"""請根據作文題目 '{essay_topic}' 和學生想到的關鍵字 '{keywords}'，按照教育部規定的英文作文結構為國中小學生設計段落安排 (你不能輸出＊字符號)。
+
+        段落安排要求：
+        - 遵循教育部規定的英文作文結構
+        - 適合國中小學生的寫作程度
+        - 每段主題要簡單明確
+        - 用詞要淺顯易懂
         
-        的英文50字單字內段落主題 (你不能輸出＊字符號），按照以下格式輸出:
-        第一段: [段落主題1]
-        第二段: [段落主題2]
-        第三段: [段落主題3]
-        第四段: [段落主題4]
-        第五段: [段落主題5]
+        標準段落結構（教育部規定）：
+        第1段：引言（Introduction）- 背景介紹 + 主旨陳述
+        第2段：內文段落一（Body Paragraph 1）- 第一個論點 + 支持證據
+        第3段：內文段落二（Body Paragraph 2）- 第二個論點 + 支持證據  
+        第4段：內文段落三（Body Paragraph 3）- 第三個論點 + 支持證據
+        第5段：結論（Conclusion）- 總結論點 + 重申立場
+        
+        請按照以下格式輸出，每段用簡單的中文說明：
+        第一段（引言）: [引言段落的具體內容建議]
+        第二段（內文一）: [第一個內文段落的具體內容建議]
+        第三段（內文二）: [第二個內文段落的具體內容建議]
+        第四段（內文三）: [第三個內文段落的具體內容建議]
+        第五段（結論）: [結論段落的具體內容建議]
         """
         response = model.generate_content(prompt).text.strip()
         return response
@@ -1153,14 +1209,50 @@ def generate_paragraph_theme(topic, essay_topic, keywords):
         print(f"Error generating paragraph theme for '{topic}' and '{essay_topic}': {traceback.format_exc()}")
         return "無法生成段落主題，請稍後再試"
 
+def generate_english_keypoints(essay_topic, paragraph_theme):
+    """生成英文關鍵點供學生參考"""
+    try:
+        prompt = f"""請根據作文題目 '{essay_topic}' 和段落主題 '{paragraph_theme}'，為國中小學生提供每段可以使用的英文關鍵詞和短語 (你不能輸出＊字符號)。
+
+        要求：
+        - 適合國中小學生的英文程度
+        - 提供實用的英文單字和短語
+        - 每段提供3-5個相關的英文關鍵詞
+        - 用詞要簡單易懂
+        
+        請按照以下格式輸出英文關鍵詞：
+        第一段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
+        第二段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
+        第三段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
+        第四段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
+        第五段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
+        
+        例如：beautiful, cute, friendly, play with, take care of, happy, sad, excited
+        """
+        response = model.generate_content(prompt).text.strip()
+        return response
+    except Exception:
+        print(f"Error generating English keypoints for '{essay_topic}' and '{paragraph_theme}': {traceback.format_exc()}")
+        return "無法生成英文關鍵點，請稍後再試"
+
 def generate_key_points(topic, essay_topic, paragraph_theme):
     try:
-        prompt = f"""請根據以下領域 '{topic}'、作文題目 '{essay_topic}' 和段落主題'{paragraph_theme}'，針對每一個段落主題生成適合高中程度的英文文章關鍵點１０字上下(你不能輸出＊字符號)，按照以下格式輸出:
-        第一段: 請寫出由第一段主題延伸的關鍵點
-        第二段: 請寫出由第二段主題延伸的關鍵點
-        第三段: 請寫出由第三段主題延伸的關鍵點
-        第四段: 請寫出由第四段主題延伸的關鍵點
-        第五段: 請寫出由第五段主題延伸的關鍵點
+        prompt = f"""請根據作文題目 '{essay_topic}' 和段落主題 '{paragraph_theme}'，為國中小學生提供每段可以使用的英文單字和短句 (你不能輸出＊字符號)。
+
+        要求：
+        - 適合國中小學生的英文程度
+        - 提供實用的英文單字、短語和簡短句子
+        - 每段提供5-8個相關的英文詞彙或短句
+        - 用詞要簡單易懂，適合寫作使用
+        
+        請按照以下格式輸出英文詞彙和短句：
+        第一段: word1, phrase1, short sentence1, word2, phrase2
+        第二段: word1, phrase1, short sentence1, word2, phrase2
+        第三段: word1, phrase1, short sentence1, word2, phrase2
+        第四段: word1, phrase1, short sentence1, word2, phrase2
+        第五段: word1, phrase1, short sentence1, word2, phrase2
+        
+        例如：beautiful, very important, I think that, interesting, make me happy, first of all, in conclusion
         """
         response = model.generate_content(prompt).text.strip()
         return response
@@ -1168,112 +1260,494 @@ def generate_key_points(topic, essay_topic, paragraph_theme):
         print(f"Error generating key points for '{topic}', '{essay_topic}', and '{paragraph_theme}': {traceback.format_exc()}")
         return "無法生成關鍵點，請稍後再試"
 
+def generate_topic_sentence_from_keypoints(essay_topic, user_keypoints):
+    """基於用戶輸入的關鍵點生成主題句範本"""
+    try:
+        if not user_keypoints or len(user_keypoints) == 0:
+            return """第一段: I want to talk about {essay_topic}.
+第二段: First, I think it is important to mention...
+第三段: Another thing I want to share is...
+第四段: Moreover, I believe that...
+第五段: In conclusion, {essay_topic} means a lot to me.""".format(essay_topic=essay_topic)
+        
+        prompt = f"""請根據作文題目 '{essay_topic}' 和學生寫的關鍵點，為每段生成簡單的英文主題句範本 (你不能輸出＊字符號)。
+
+學生的關鍵點：
+{chr(10).join([f'第{i+1}段: {point}' for i, point in enumerate(user_keypoints) if point.strip()])}
+
+要求：
+- 適合國中小學生的英文程度
+- 句子要簡單易懂
+- 基於學生的關鍵點內容
+- 每句話都要完整且有意義
+
+請按照以下格式輸出：
+第一段: [簡單的英文主題句]
+第二段: [簡單的英文主題句]
+第三段: [簡單的英文主題句]
+第四段: [簡單的英文主題句]
+第五段: [簡單的英文主題句]"""
+        
+        response = model.generate_content(prompt).text.strip()
+        return response
+    except Exception:
+        print(f"Error generating topic sentences from keypoints: {traceback.format_exc()}")
+        return f"""第一段: I want to talk about {essay_topic}.
+第二段: First, I think it is important to mention...
+第三段: Another thing I want to share is...
+第四段: Moreover, I believe that...
+第五段: In conclusion, {essay_topic} means a lot to me."""
+
 def generate_topic_sentence(topic, essay_topic, paragraph_theme, keywords):
     try:
-         prompt = f"""請根據以下領域 '{topic}'、作文題目 '{essay_topic}' 、段落主題'{paragraph_theme}' 和關鍵字'{keywords}'，針對每一個段落主題和關鍵字生成一個適合高中程度的英文主題句 (你不能輸出＊字符號)，按照以下格式輸出:
-        第一段: 請根據第一段的關鍵字寫出主題句 [主題句1]
-        第二段: 請根據第二段的關鍵字寫出主題句 [主題句2]
-        第三段: 請根據第三段的關鍵字寫出主題句 [主題句3]
-        第四段: 請根據第四段的關鍵字寫出主題句 [主題句4]
-        第五段: 請根據第五段的關鍵字寫出主題句 [主題句5]
+        prompt = f"""請根據作文題目 '{essay_topic}'、段落主題 '{paragraph_theme}' 和關鍵字 '{keywords}'，為國中小學生生成每段的英文開頭句範例 (你不能輸出＊字符號)。
+
+        要求：
+        - 適合國中小學生的英文程度
+        - 句子要簡單易懂
+        - 用詞要基礎，避免太難的單字
+        - 句型要簡單明確
+        - 這些只是範例，學生可以參考或自己創作
+        
+        請按照以下格式輸出，提供每段的英文開頭句範例：
+        第一段: [簡單的英文開頭句範例]
+        第二段: [簡單的英文開頭句範例]
+        第三段: [簡單的英文開頭句範例]
+        第四段: [簡單的英文開頭句範例]
+        第五段: [簡單的英文開頭句範例]
+        
+        範例格式：
+        - I have a pet dog. (我有一隻寵物狗)
+        - My dog is very cute. (我的狗很可愛)
+        - He likes to play with me. (他喜歡和我玩)
         """
-         response = model.generate_content(prompt).text.strip()
-         return response
+        response = model.generate_content(prompt).text.strip()
+        return response
     except Exception:
         print(f"Error generating topic sentence for '{topic}', '{essay_topic}', '{paragraph_theme}', and '{keywords}': {traceback.format_exc()}")
         return "無法生成主題句，請稍後再試"
-def save_composition_data(step, data):
-    global composition_data
-    composition_data[step] = data
-def compose_essay():
+def save_composition_to_db(user_id, title, content, ai_feedback=None):
+    """儲存作文到資料庫"""
     try:
-        essay_parts = []
-        for step in sorted(composition_data.keys()):
-            if step in composition_data and 'topic_sentence' in composition_data[step]:
-                if isinstance(composition_data[step]['topic_sentence'], dict):
-                    for key in sorted(composition_data[step]['topic_sentence'].keys()):
-                         essay_parts.append(composition_data[step]['topic_sentence'][key])
-                else:
-                   essay_parts.append(composition_data[step]['topic_sentence'])
-        return "\n".join(essay_parts)
-    except Exception:
-        print(f"Error composing essay: {traceback.format_exc()}")
+        composition = Composition(
+            user_id=user_id,
+            title=title,
+            content=content,
+            ai_feedback=ai_feedback
+        )
+        db.session.add(composition)
+        db.session.commit()
+        
+        # 記錄學習活動
+        learning_record = LearningRecord(
+            user_id=user_id,
+            activity_type='composition',
+            content=f'完成作文: {title}'
+        )
+        db.session.add(learning_record)
+        db.session.commit()
+        
+        return composition.id
+    except Exception as e:
+        print(f"Error saving composition: {e}")
+        db.session.rollback()
+        return None
+
+def get_user_compositions(user_id, limit=10):
+    """獲取用戶的作文歷史"""
+    try:
+        compositions = Composition.query.filter_by(user_id=user_id)\
+                                      .order_by(Composition.timestamp.desc())\
+                                      .limit(limit).all()
+        return compositions
+    except Exception as e:
+        print(f"Error getting user compositions: {e}")
+        return []
+
+def compose_essay_from_sentences(topic_sentences):
+    """從主題句組合成完整作文"""
+    try:
+        if not topic_sentences or len(topic_sentences) != 5:
+            return "無法生成作文，請確保完成所有五個段落的主題句"
+        
+        # 使用 AI 將主題句擴展成完整段落
+        prompt = f"""請將以下五個主題句擴展成一篇完整的國中小學生程度英文作文 (你不能輸出＊字符號):
+
+第一段主題句: {topic_sentences[0]}
+第二段主題句: {topic_sentences[1]}
+第三段主題句: {topic_sentences[2]}
+第四段主題句: {topic_sentences[3]}
+第五段主題句: {topic_sentences[4]}
+
+要求：
+- 適合國中小學生的英文程度
+- 用詞簡單，句型基礎
+- 每個主題句擴展成約50-80字的段落
+- 整篇作文要有完整的結構
+- 內容要生動有趣，貼近學生生活
+
+請直接輸出完整的英文作文，不需要其他說明。"""
+        
+        response = model.generate_content(prompt).text.strip()
+        return response
+    except Exception as e:
+        print(f"Error composing essay from sentences: {e}")
         return "無法生成作文，請稍後再試"
+
+def translate_essay_to_chinese(essay):
+    """將英文作文翻譯成中文"""
+    try:
+        prompt = f"""請將以下英文作文翻譯成繁體中文，翻譯要自然流暢，適合國中小學生理解 (你不能輸出＊字符號):
+
+{essay}
+
+要求：
+- 使用繁體中文
+- 翻譯要自然流暢
+- 保持原文的段落結構
+- 用詞要適合國中小學生理解
+
+請直接輸出中文翻譯，不需要其他說明。"""
+        
+        response = model.generate_content(prompt).text.strip()
+        return response
+    except Exception as e:
+        print(f"Error translating essay: {e}")
+        return "無法翻譯作文，請稍後再試"
 def generate_essay_evaluation(essay):
     try:
-        prompt = f"""請針對以下高中英文作文給予評價(你不能輸出＊字符號)並給出優點及缺點:
-        {essay}
-        """
+        prompt = f"""請針對以下國中小學生的英文作文給予鼓勵性的評價和建議 (你不能輸出＊字符號):
+
+{essay}
+
+評價要求：
+- 用繁體中文回應
+- 語氣要鼓勵和正面
+- 適合國中小學生的理解程度
+- 指出作文的優點
+- 給出具體的改進建議
+- 用詞要親切友善
+
+請按照以下格式回應：
+【優點】
+[列出作文的優點，給予鼓勵]
+
+【建議】
+[給出具體的改進建議，幫助學生進步]
+
+【總評】
+[給予正面的總結評語]"""
+        
         response = model.generate_content(prompt).text.strip()
         return response
     except Exception:
-         print(f"Error generating essay evaluation: {traceback.format_exc()}")
-         return "無法生成作文評價，請稍後再試"
+        print(f"Error generating essay evaluation: {traceback.format_exc()}")
+        return "無法生成作文評價，請稍後再試"
+def combine_user_content(user_keypoints, user_topic_sentences):
+    """直接組合用戶的關鍵點和主題句，不做AI修改"""
+    try:
+        # 確保有內容可以組合
+        if not user_topic_sentences:
+            return "請先完成主題句的編寫"
+        
+        # 直接將用戶的主題句組合成段落
+        essay_paragraphs = []
+        
+        for i, sentence in enumerate(user_topic_sentences):
+            if sentence.strip():
+                # 每個主題句作為一個段落
+                paragraph = sentence.strip()
+                
+                # 如果有對應的關鍵點，可以簡單地添加到句子後面
+                if i < len(user_keypoints) and user_keypoints[i].strip():
+                    # 簡單地將關鍵點作為補充說明
+                    keypoint = user_keypoints[i].strip()
+                    # 這裡不做複雜的AI處理，只是簡單組合
+                    if not sentence.endswith('.'):
+                        paragraph += '.'
+                    paragraph += f" {keypoint}."
+                
+                essay_paragraphs.append(paragraph)
+        
+        # 將段落組合成完整作文
+        essay = '\n\n'.join(essay_paragraphs)
+        return essay
+        
+    except Exception as e:
+        print(f"Error combining user content: {e}")
+        return "無法組合作文內容，請稍後再試"
+
+def generate_simple_evaluation(essay):
+    """生成簡單的鼓勵性評價"""
+    try:
+        prompt = f"""請針對以下學生自己寫的英文作文給予簡短的鼓勵性評價 (你不能輸出＊字符號):
+
+{essay}
+
+評價要求：
+- 用繁體中文回應
+- 語氣要非常鼓勵和正面
+- 重點在於肯定學生的努力
+- 簡短有力，不超過100字
+- 強調學生的創意和想法
+
+請給予正面的鼓勵評語。"""
+        
+        response = model.generate_content(prompt).text.strip()
+        return response
+    except Exception:
+        print(f"Error generating simple evaluation: {traceback.format_exc()}")
+        return "太棒了！你完成了自己的作文，這是很棒的成就！繼續努力，你會越來越進步的！"
+
 def generate_refined_essay(essay):
     try:
-        prompt = f"""請針對以下高中英文作文進行潤飾，使其更流暢且更適合高中生程度(你不能輸出＊字符號):
-        {essay}
-        """
+        prompt = f"""請幫助國中小學生改進以下英文作文，讓它變得更好 (你不能輸出＊字符號):
+
+{essay}
+
+改進要求：
+- 保持適合國中小學生的英文程度
+- 修正文法錯誤
+- 讓句子更流暢
+- 用詞更準確但不要太難
+- 保持原文的意思和結構
+- 讓作文更生動有趣
+
+請直接輸出改進後的英文作文，不需要其他說明。"""
+        
         response = model.generate_content(prompt).text.strip()
         return response
     except Exception:
-         print(f"Error generating refined essay: {traceback.format_exc()}")
-         return "無法生成潤飾後的作文，請稍後再試"
+        print(f"Error generating refined essay: {traceback.format_exc()}")
+        return "無法生成潤飾後的作文，請稍後再試"
 @app.route("/composition", methods=["GET", "POST"])
+@login_required
 def composition():
-    global composition_data
-    step = request.args.get("step", "1")
-    essay_topic = None
-    paragraph_theme = None
-    key_points = None
-    topic_sentence = None
-    essay = None
-    evaluation = None
-    refined_essay = None
+    """作文功能主頁面 - 需要登入"""
+    # 獲取用戶的作文歷史
+    user_compositions = get_user_compositions(current_user.id, limit=5)
+    return render_template('composition.html', user_compositions=user_compositions)
+
+@app.route("/composition/new", methods=["GET", "POST"])
+@login_required
+def new_composition():
+    """創建新作文"""
     if request.method == "POST":
-        data = request.form.to_dict()
-        print(f"接收到的表單數據: {data}")
-        if step == '1':
-            topic = data.get('topic')
-            essay_topic = data.get('essay_topic')
-            if not essay_topic:
-               essay_topic= generate_essay_topic(topic)
-            save_composition_data(step, {"topic":topic,"essay_topic": essay_topic})
+        # 處理作文創建請求
+        data = request.get_json()
+        action = data.get('action')
+        
+        if action == 'generate_topic':
+            topic_category = data.get('topic_category')
+            essay_topic = generate_essay_topic(topic_category)
+            session['composition_data'] = {
+                'topic_category': topic_category,
+                'essay_topic': essay_topic,
+                'step': 1
+            }
+            return jsonify({'success': True, 'essay_topic': essay_topic})
+        
+        elif action == 'set_custom_topic':
+            custom_topic = data.get('custom_topic')
+            session['composition_data'] = {
+                'topic_category': 'custom',
+                'essay_topic': custom_topic,
+                'step': 1
+            }
+            return jsonify({'success': True, 'essay_topic': custom_topic})
+        
+        elif action == 'generate_paragraph_themes':
+            composition_data = session.get('composition_data', {})
+            keywords = data.get('keywords', '')
+            paragraph_theme = generate_paragraph_theme(
+                composition_data.get('topic_category'),
+                composition_data.get('essay_topic'),
+                keywords
+            )
+            composition_data.update({
+                'keywords': keywords,
+                'paragraph_theme': paragraph_theme,
+                'step': 2
+            })
+            session['composition_data'] = composition_data
+            return jsonify({
+                'success': True, 
+                'paragraph_theme': paragraph_theme
+            })
+        
+        elif action == 'generate_key_points':
+            composition_data = session.get('composition_data', {})
+            key_points = generate_key_points(
+                composition_data.get('topic_category'),
+                composition_data.get('essay_topic'),
+                composition_data.get('paragraph_theme')
+            )
+            composition_data.update({
+                'key_points': key_points,
+                'step': 3
+            })
+            session['composition_data'] = composition_data
+            return jsonify({'success': True, 'key_points': key_points})
+        
+        elif action == 'generate_topic_sentences':
+            composition_data = session.get('composition_data', {})
+            user_keypoints = data.get('user_keypoints', [])
+            topic_sentences = generate_topic_sentence_from_keypoints(
+                composition_data.get('essay_topic'),
+                user_keypoints
+            )
+            composition_data.update({
+                'topic_sentences': topic_sentences,
+                'step': 4
+            })
+            session['composition_data'] = composition_data
+            return jsonify({'success': True, 'topic_sentences': topic_sentences})
+        
+        elif action == 'combine_essay':
+            composition_data = session.get('composition_data', {})
+            user_keypoints = data.get('user_keypoints', [])
+            user_topic_sentences = data.get('user_topic_sentences', [])
             
+            # 直接組合用戶的內容，不再由AI修改
+            essay = combine_user_content(user_keypoints, user_topic_sentences)
+            translation = translate_essay_to_chinese(essay)
+            evaluation = generate_simple_evaluation(essay)
             
-            return render_template('composition.html', step=step, essay_topic=essay_topic)
-        elif step == '2':
-            topic = composition_data.get('1').get('topic')
-            essay_topic = composition_data.get('1').get('essay_topic')
-            keywords = data.get('keywords')
-            paragraph_theme= generate_paragraph_theme(topic, essay_topic,keywords)
-            save_composition_data(step, {"paragraph_theme": paragraph_theme, "keywords": keywords})
-           
-            return render_template('composition.html', step=step, paragraph_theme=paragraph_theme, keywords=keywords)
-        elif step == '3':
-             topic = composition_data.get('1').get('topic')
-             essay_topic = composition_data.get('1').get('essay_topic')
-             paragraph_theme = composition_data.get('2').get('paragraph_theme')
-             key_points = generate_key_points(topic, essay_topic, paragraph_theme)
-             save_composition_data(step, {"key_points": key_points})
-           
-             return render_template('composition.html', step=step, key_points=key_points, paragraph_theme=paragraph_theme)
-        elif step == '4':
-            topic = composition_data.get('1').get('topic')
-            essay_topic = composition_data.get('1').get('essay_topic')
-            paragraph_theme = composition_data.get('2').get('paragraph_theme')
-            keywords = composition_data.get('2').get('keywords')
-            key_points = composition_data.get('3').get('key_points')
-            topic_sentence = generate_topic_sentence(topic, essay_topic, paragraph_theme, keywords)
-            save_composition_data(step,{"topic_sentence":topic_sentence})
-            return render_template('composition.html', step=step, topic_sentence=topic_sentence, key_points=key_points, paragraph_theme = paragraph_theme)
-        elif step == '5':
-            essay = compose_essay()
+            # 儲存到資料庫
+            composition_id = save_composition_to_db(
+                current_user.id,
+                composition_data.get('essay_topic', '未命名作文'),
+                essay,
+                evaluation
+            )
+            
+            if composition_id:
+                # 清除 session 資料
+                session.pop('composition_data', None)
+                return jsonify({
+                    'success': True,
+                    'essay': essay,
+                    'translation': translation,
+                    'evaluation': evaluation,
+                    'composition_id': composition_id
+                })
+            else:
+                return jsonify({'success': False, 'error': '儲存作文失敗'})
+        
+        elif action == 'finalize_essay':
+            composition_data = session.get('composition_data', {})
+            user_topic_sentences = data.get('user_topic_sentences', [])
+            
+            # 生成完整作文
+            essay = compose_essay_from_sentences(user_topic_sentences)
+            translation = translate_essay_to_chinese(essay)
             evaluation = generate_essay_evaluation(essay)
-            refined_essay= generate_refined_essay(essay)
-            return render_template('composition.html', step=step, essay=essay, evaluation=evaluation, refined_essay = refined_essay)
+            
+            # 儲存到資料庫
+            composition_id = save_composition_to_db(
+                current_user.id,
+                composition_data.get('essay_topic', '未命名作文'),
+                essay,
+                evaluation
+            )
+            
+            if composition_id:
+                # 清除 session 資料
+                session.pop('composition_data', None)
+                return jsonify({
+                    'success': True,
+                    'essay': essay,
+                    'translation': translation,
+                    'evaluation': evaluation,
+                    'composition_id': composition_id
+                })
+            else:
+                return jsonify({'success': False, 'error': '儲存作文失敗'})
+        
+        elif action == 'get_feedback':
+            essay = data.get('essay')
+            translation = translate_essay_to_chinese(essay)
+            evaluation = generate_simple_evaluation(essay)
+            return jsonify({
+                'success': True,
+                'translation': translation,
+                'evaluation': evaluation
+            })
+        
+        elif action == 'save_essay':
+            essay_topic = data.get('essay_topic')
+            essay_content = data.get('essay_content')
+            translation = data.get('translation', '')
+            evaluation = data.get('evaluation', '')
+            
+            if not essay_topic or not essay_content:
+                return jsonify({'success': False, 'error': '作文題目和內容不能為空'})
+            
+            # 儲存到資料庫
+            composition_id = save_composition_to_db(
+                current_user.id,
+                essay_topic,
+                essay_content,
+                evaluation
+            )
+            
+            if composition_id:
+                return jsonify({
+                    'success': True,
+                    'composition_id': composition_id,
+                    'message': '作文儲存成功'
+                })
+            else:
+                return jsonify({'success': False, 'error': '儲存作文失敗'})
+        
+        elif action == 'refine_essay':
+            essay = data.get('essay')
+            refined_essay = generate_refined_essay(essay)
+            refined_translation = translate_essay_to_chinese(refined_essay)
+            return jsonify({
+                'success': True, 
+                'refined_essay': refined_essay,
+                'refined_translation': refined_translation
+            })
     
-    return render_template('composition.html', step=step, essay_topic=essay_topic, paragraph_theme=paragraph_theme, key_points=key_points, topic_sentence=topic_sentence, essay = essay, evaluation=evaluation, refined_essay = refined_essay)
+    # GET 請求 - 顯示新作文創建頁面
+    composition_data = session.get('composition_data', {})
+    return render_template('composition_new.html', composition_data=composition_data)
+
+@app.route("/composition/view/<int:composition_id>")
+@login_required
+def view_composition(composition_id):
+    """查看特定作文"""
+    composition = Composition.query.filter_by(
+        id=composition_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not composition:
+        flash('作文不存在或無權限查看', 'error')
+        return redirect(url_for('composition'))
+    
+    return render_template('composition_view.html', composition=composition)
+
+@app.route("/composition/delete/<int:composition_id>", methods=["POST"])
+@login_required
+def delete_composition(composition_id):
+    """刪除作文"""
+    composition = Composition.query.filter_by(
+        id=composition_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not composition:
+        return jsonify({'success': False, 'error': '作文不存在或無權限刪除'})
+    
+    try:
+        db.session.delete(composition)
+        db.session.commit()
+        return jsonify({'success': True, 'message': '作文已刪除'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': '刪除失敗'})
 
 
 def start_ngrok():

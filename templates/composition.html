@@ -4,154 +4,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>英語作文教學助手</title>
-    <link rel="stylesheet" href="static/css/composition.css">
-     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/composition.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <a href="/" class="back-button">主頁</a>
     <div class="container">
         <header>
+            <div class="header-nav">
+                <a href="{{ url_for('index') }}" class="back-button">
+                    <i class="fas fa-arrow-left"></i> 返回主頁
+                </a>
+                <div class="user-info">
+                    <span>歡迎，{{ current_user.username }}</span>
+                </div>
+            </div>
             <h1>英語作文教學助手</h1>
             <p class="subtitle">循序漸進，提升寫作能力</p>
         </header>
 
-        <div class="progress-bar">
-            <div class="step active" data-step="1">選擇主題</div>
-            <div class="step" data-step="2">確定段落主題</div>
-            <div class="step" data-step="3">關鍵點</div>
-            <div class="step" data-step="4">主題句</div>
-             <div class="step" data-step="5">作文總覽</div>
-        </div>
-
         <main>
-            <form id="composition-form" method="post">
-            <section id="step1" class="step-content active">
-                <h2>第一步：選擇寫作主題</h2>
-                 <p>請選擇您今天想要練習的寫作領域：</p>
-                <div class="topic-grid">
-                    <button type="button" class="topic-btn" data-topic="school" aria-label="學校與學習">學校與學習</button>
-                    <button type="button" class="topic-btn" data-topic="life" aria-label="生活經歷">生活經歷</button>
-                    <button type="button" class="topic-btn" data-topic="growth" aria-label="個人成長">個人成長</button>
-                    <button type="button" class="topic-btn" data-topic="social" aria-label="社會議題">社會議題</button>
+            <div class="composition-dashboard">
+                <div class="action-section">
+                    <h2>開始新作文</h2>
+                    <p>選擇一個主題開始您的英語作文練習</p>
+                    <a href="{{ url_for('new_composition') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> 創建新作文
+                    </a>
                 </div>
-                 <div class="topic-input">
-                    <input type="text" id="essay-topic" name="essay_topic" placeholder="或輸入自訂作文題目...">
-                    <button type="button" id="generate-topic-btn">隨機生成題目
-                        <i class="fas fa-spinner fa-spin" id="topic-spinner" style="display:none;"></i>
-                    </button>
-                     <input type="hidden" id="topic-input" name="topic">
+
+                {% if user_compositions %}
+                <div class="history-section">
+                    <h2>我的作文歷史</h2>
+                    <div class="compositions-grid">
+                        {% for composition in user_compositions %}
+                        <div class="composition-card">
+                            <div class="composition-header">
+                                <h3>{{ composition.title }}</h3>
+                                <span class="composition-date">{{ composition.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            <div class="composition-preview">
+                                {{ composition.content[:150] }}{% if composition.content|length > 150 %}...{% endif %}
+                            </div>
+                            <div class="composition-actions">
+                                <a href="{{ url_for('view_composition', composition_id=composition.id) }}" class="btn btn-secondary">
+                                    <i class="fas fa-eye"></i> 查看
+                                </a>
+                                <button onclick="deleteComposition({{ composition.id }})" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> 刪除
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if user_compositions|length >= 5 %}
+                    <div class="view-all">
+                        <p>顯示最近 5 篇作文</p>
+                    </div>
+                    {% endif %}
                 </div>
-                  <p id="step1-error" class="error-message" style="display:none;">請完成所有步驟輸入再繼續</p>
-                 {% if essay_topic %}
-                    <p>當前題目：{{ essay_topic }}</p>
-                 {% endif %}
-            </section>
-
-            <section id="step2" class="step-content">
-                <h2>第二步：確定段落主題</h2>
-                <p>請根據以下各段落，輸入關鍵字：</p>
-                
-                {% for i in range(1, 6) %}
-                    <p>第{{ i }}段：
-                        {% if i == 1 %}
-                            介紹背景&引言，講述問題的重要性和爭議
-                        {% elif i == 2 %}
-                             提出觀點一，列舉相關例子和證據支持該觀點
-                        {% elif i == 3 %}
-                             提出觀點二，列舉相關例子和證據支持該觀點
-                        {% elif i == 4 %}
-                             比較不同觀點的優缺點，提出自己所支持的觀點和理由
-                         {% elif i == 5 %}
-                             總結觀點，重申問題的重要性和解決方式
-                         {% endif %}
-                    </p>
-                    <div class="topic-input">
-                        <input type="text" id="keywords-input-{{ i }}" name="keywords" placeholder="輸入關鍵字...">
-                          <p id="step2-error-{{i}}" class="error-message" style="display:none;">請完成所有步驟輸入再繼續</p>
-                       {% if paragraph_theme %}
-                          {% set themes = paragraph_theme.split('\n') %}
-                           {% set theme = themes[i-1].split(': ')[1] %}
-                           <button type="button" class="apply-btn small-apply-btn" data-target="keywords-input-{{ i }}" data-value="{{ theme }}">套用</button>
-                         <span >AI提示:{{ theme }}</span>
-                     {% endif %}
-                    </div>
-                {% endfor %}
-            </section>
-
-            <section id="step3" class="step-content">
-                 <h2>第三步：確定關鍵點</h2>
-                  <p>請根據以下各段落主題，輸入關鍵點：</p>
-                 {% for i in range(1, 6) %}
-                    <p>第{{ i }}段：
-                        {% if paragraph_theme %}
-                           {% set themes = paragraph_theme.split('\n') %}
-                           {% set theme = themes[i-1].split(': ')[1] %}
-                            {{ theme }} (寫出由此段主題延伸的關鍵點)
-                         {% endif %}
-                    </p>
-                    <div class="keywords-container">
-                        
-                            <div class="keyword-input">
-                             <input type="text" class="keyword" id="keyword-input-{{i}}" placeholder="輸入關鍵點..." disabled>
-                              <p id="step3-error-{{i}}" class="error-message" style="display:none;">請完成所有步驟輸入再繼續</p>
-                                 {% if key_points %}
-                                     {% set points = key_points.split('\n') %}
-                                     {% set point = points[i-1].split(': ')[1] %}
-                                     <button type="button" class="apply-btn small-apply-btn" data-target="keyword-input-{{i}}" data-value="{{point}}">套用</button>
-                                        <span >AI提示:{{ point }}</span>
-                                {% endif %}
-                         </div>
-                    </div>
-                    {% endfor %}
-            </section>
-
-            <section id="step4" class="step-content">
-                <h2>第四步：編寫主題句</h2>
-                 <p>請根據以下各段落關鍵點，編寫主題句：</p>
-                  {% for i in range(1, 6) %}
-                    <p>第{{ i }}段：
-                         {% if key_points %}
-                              {% set points = key_points.split('\n') %}
-                           {% set point = points[i-1].split(': ')[1] %}
-                             (由此段關鍵點延伸出的主題句)
-                         {% endif %}
-                    </p>
-                    <div class="topic-sentence">
-                        <textarea  id="topic-sentence-input-{{i}}" placeholder="根據關鍵點編寫主題句..." disabled></textarea>
-                           <p id="step4-error-{{i}}" class="error-message" style="display:none;">請完成所有步驟輸入再繼續</p>
-                          {% if topic_sentence %}
-                              {% set sentences = topic_sentence.split('\n') %}
-                            {% set sentence = sentences[i-1].split(': ')[1] %}
-                            <span>AI提示: {{ theme }}</span>
-                            <button type="button" class="apply-btn" data-target="keywords-input-{{ i }}" data-value="{{ theme }}">套用</button>
-                            
-                         {% endif %}
-                      </div>
-                     {% endfor %}
-            </section>
-             <section id="step5" class="step-content">
-                <h2>第五步：作文總覽</h2>
-                 {% if essay %}
-                     <p>作文：</p>
-                       <p>{{ essay }}</p>
-                       <p>AI 評價:</p>
-                       <p>{{ evaluation }}</p>
-                        <button type="button" id="refine-essay-btn">作文潤飾</button>
-                         <div id="refined-essay-container" style="display:none;">
-                            <p>潤飾後作文:</p>
-                             <p id ="refined-essay">{{ refined_essay }}</p>
-                         </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-edit"></i>
+                    <h3>還沒有作文記錄</h3>
+                    <p>開始您的第一篇英語作文練習吧！</p>
+                </div>
                 {% endif %}
-            </section>
-                <div class="navigation">
-                    <button type="button" id="prev-btn" disabled>上一步</button>
-                    <button type="submit" id="next-btn" >下一步</button>
-                </div>
-           </form>
+            </div>
         </main>
-
-
     </div>
-   <script src="static/js/composition.js"></script>
+
+    <script>
+        function deleteComposition(compositionId) {
+            if (confirm('確定要刪除這篇作文嗎？此操作無法復原。')) {
+                fetch(`/composition/delete/${compositionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('刪除失敗：' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('刪除失敗，請稍後再試');
+                });
+            }
+        }
+    </script>
 </body>
 </html>

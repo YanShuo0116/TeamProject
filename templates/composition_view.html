@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ composition.title }} - 英語作文教學助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/composition.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-nav">
+                <a href="{{ url_for('composition') }}" class="back-button">
+                    <i class="fas fa-arrow-left"></i> 返回作文列表
+                </a>
+                <div class="user-info">
+                    <span>歡迎，{{ current_user.username }}</span>
+                </div>
+            </div>
+            <h1>{{ composition.title }}</h1>
+            <p class="subtitle">創建於 {{ composition.timestamp.strftime('%Y年%m月%d日 %H:%M') }}</p>
+        </header>
+
+        <main>
+            <div class="composition-view">
+                <div class="composition-content">
+                    <h2>作文內容</h2>
+                    <div class="essay-display">
+                        {{ composition.content|replace('\n', '<br>')|safe }}
+                    </div>
+                </div>
+
+                {% if composition.ai_feedback %}
+                <div class="ai-feedback">
+                    <h2>AI 評價與建議</h2>
+                    <div class="feedback-display">
+                        {{ composition.ai_feedback|replace('\n', '<br>')|safe }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="composition-actions">
+                    <button onclick="printComposition()" class="btn btn-secondary">
+                        <i class="fas fa-print"></i> 列印
+                    </button>
+                    <button onclick="copyToClipboard()" class="btn btn-secondary">
+                        <i class="fas fa-copy"></i> 複製內容
+                    </button>
+                    <button onclick="deleteComposition()" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> 刪除作文
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function printComposition() {
+            window.print();
+        }
+
+        function copyToClipboard() {
+            const content = `{{ composition.title }}\n\n{{ composition.content }}`;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('作文內容已複製到剪貼簿');
+            }).catch(err => {
+                console.error('複製失敗:', err);
+                alert('複製失敗，請手動選取文字複製');
+            });
+        }
+
+        function deleteComposition() {
+            if (confirm('確定要刪除這篇作文嗎？此操作無法復原。')) {
+                fetch(`/composition/delete/{{ composition.id }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('作文已刪除');
+                        window.location.href = '{{ url_for("composition") }}';
+                    } else {
+                        alert('刪除失敗：' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('刪除失敗，請稍後再試');
+                });
+            }
+        }
+    </script>
+</body>
+</html>
