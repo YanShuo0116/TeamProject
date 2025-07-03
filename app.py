@@ -29,7 +29,7 @@ PEXELS_API_KEY = "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr" # �
 pexels_api = Pexels(PEXELS_API_KEY)
 
 #選擇模型
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17')
 
 # 建立 Flask 
 app = Flask(__name__)
@@ -135,7 +135,7 @@ Limit
         translation_response = model.generate_content(translation_prompt).text
 
         # 2. 相關詞語
-        explanation_prompt = f"請列出與單字 '{word}' 相關的詞語，包含變形或派生詞(2~5個)，格式如下：\nUnnerve\n- Unnerving\n- Unnervingly"
+        explanation_prompt = f"請列出與單字 '{word}' 相關的詞語，包含變形或派生詞(2~5個)請嚴格按照以下格式輸出，格式如下：\nUnnerve\n- Unnerving\n- Unnervingly"
         explanation_response = model.generate_content(explanation_prompt).text
 
         # 3. 例句
@@ -1122,7 +1122,7 @@ def complete_quiz(quiz_id):
 # 確保音檔目錄
 os.makedirs('audio_files', exist_ok=True)
 #作文區
-# 預設作文題目，避免使用AI生成
+# 預設作文題目
 ESSAY_TOPICS = {
     'school': [
         'My School Life', 'My Favorite Subject', 'My Best Teacher', 'School Activities I Enjoy',
@@ -1196,7 +1196,7 @@ def generate_paragraph_theme(topic, essay_topic, keywords):
         第4段：內文段落三（Body Paragraph 3）- 第三個論點 + 支持證據
         第5段：結論（Conclusion）- 總結論點 + 重申立場
         
-        請按照以下格式輸出，每段用簡單的中文說明：
+        請按照以下格式輸出(請嚴格按照以下格式輸出)，每段用簡單的中文說明：
         第一段（引言）: [引言段落的具體內容建議]
         第二段（內文一）: [第一個內文段落的具體內容建議]
         第三段（內文二）: [第二個內文段落的具體內容建議]
@@ -1220,7 +1220,7 @@ def generate_english_keypoints(essay_topic, paragraph_theme):
         - 每段提供3-5個相關的英文關鍵詞
         - 用詞要簡單易懂
         
-        請按照以下格式輸出英文關鍵詞：
+        請按照以下格式輸出英文關鍵詞(請嚴格按照以下格式輸出)：
         第一段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
         第二段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
         第三段: [英文關鍵詞1, 英文關鍵詞2, 英文關鍵詞3]
@@ -1245,7 +1245,7 @@ def generate_key_points(topic, essay_topic, paragraph_theme):
         - 每段提供5-8個相關的英文詞彙或短句
         - 用詞要簡單易懂，適合寫作使用
         
-        請按照以下格式輸出英文詞彙和短句：
+        請按照以下格式輸出英文詞彙和短句(請嚴格按照以下格式輸出)：
         第一段: word1, phrase1, short sentence1, word2, phrase2
         第二段: word1, phrase1, short sentence1, word2, phrase2
         第三段: word1, phrase1, short sentence1, word2, phrase2
@@ -1281,7 +1281,7 @@ def generate_topic_sentence_from_keypoints(essay_topic, user_keypoints):
 - 基於學生的關鍵點內容
 - 每句話都要完整且有意義
 
-請按照以下格式輸出：
+請按照以下格式輸出(請嚴格按照以下格式輸出)：
 第一段: [簡單的英文主題句]
 第二段: [簡單的英文主題句]
 第三段: [簡單的英文主題句]
@@ -1309,7 +1309,7 @@ def generate_topic_sentence(topic, essay_topic, paragraph_theme, keywords):
         - 句型要簡單明確
         - 這些只是範例，學生可以參考或自己創作
         
-        請按照以下格式輸出，提供每段的英文開頭句範例：
+        請按照以下格式輸出，提供每段的英文開頭句範例(請嚴格按照以下格式輸出)：
         第一段: [簡單的英文開頭句範例]
         第二段: [簡單的英文開頭句範例]
         第三段: [簡單的英文開頭句範例]
