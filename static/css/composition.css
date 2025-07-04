@@ -921,7 +921,7 @@ audio {
 
 .keyword-input-item input {
     width: 100%;
-    padding: 10px;
+    padding: 6px;
     border: 1px solid var(--border-color);
     border-radius: 5px;
     background: var(--background-color);
@@ -1094,8 +1094,8 @@ audio {
 
 .sentence-input {
     width: 100%;
-    min-height: 100px;
-    padding: 12px;
+    min-height: 60px;
+    padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 5px;
     background: var(--background-color);
