@@ -13,7 +13,7 @@ from flask import Flask, render_template_string, request, session, redirect, url
 from chroma import ChromaDBManager, list_pdf_files
 from gtts import gTTS # For Text-to-Speech
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-04-17")
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite-preview-06-17")
 embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 app = Flask(__name__)
 app.secret_key = os.urandom(24)

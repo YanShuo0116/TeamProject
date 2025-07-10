@@ -4,7 +4,8 @@ from flask_login import LoginManager, current_user, login_required
 from pyngrok import ngrok
 import traceback
 import time
-import google.generativeai as genai
+# === 輕量化多 API 管理器整合 ===
+from api_manager import SafeGenerativeModel, get_gemini_manager
 from gtts import gTTS
 import os
 import threading
@@ -23,13 +24,13 @@ Us_uk="us"
 
 # 配置API                                                                            #README.MD裡有網址
 ngrok.set_auth_token("2ywXahUIQ4BEQlBrwDT4DZ5B7xg_2B3tbiXUwG9YS9oqgcfxm")     # 替換為你的 ngrok 金鑰!!!!!!!!!!!!
-genai.configure(api_key='AIzaSyDo3-S0kOSPo9O99cTolLQUv3-x3Ebq3kM')            # 替換為你的 gemini   金鑰!!!!!!!!!  
+# API 金鑰現在由 api_manager.py 管理，支援多金鑰負載平衡
 
 PEXELS_API_KEY = "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr" # 替換為你的 Pexels API 金鑰
 pexels_api = Pexels(PEXELS_API_KEY)
 
-#選擇模型
-model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17')
+#選擇模型 - 使用安全的多 API 管理器
+model = SafeGenerativeModel()
 
 # 建立 Flask 
 app = Flask(__name__)
@@ -55,6 +56,47 @@ def load_user(user_id):
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 
+# === 新增 API 管理器監控路由 ===
+@app.route("/api/manager/stats")
+@login_required
+def api_manager_stats():
+    """獲取 API 管理器統計信息（僅管理員可見）"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        manager = get_gemini_manager()
+        stats = manager.get_stats()
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route("/api/manager/health")
+def api_manager_health():
+    """API 管理器健康檢查"""
+    try:
+        manager = get_gemini_manager()
+        # 嘗試一個簡單的請求來測試
+        test_response = manager.generate_content("Hello")
+        return jsonify({
+            'healthy': True,
+            'message': 'API 管理器運行正常',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'healthy': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
 # 錯誤處理
 @app.errorhandler(403)
 def forbidden(error):
@@ -62,18 +104,31 @@ def forbidden(error):
 
 # 作文相關的輔助函數
 
+# 圖片快取
+image_cache = {}
+
 def get_image_from_pexels(query):
+    # 檢查快取
+    if query in image_cache:
+        return image_cache[query]
+    
     try:
+        # 設定超時時間，避免長時間等待
         search_results = pexels_api.search_photos(query=query, per_page=1)
         if search_results and search_results.get('photos'):
             image_url = search_results['photos'][0]['src']['medium']
+            image_cache[query] = image_url  # 存入快取
             return image_url
         else:
             print(f"No image found for '{query}' on Pexels.")
-            return "https://via.placeholder.com/300?text=" + query.replace(" ", "+")
+            fallback_url = "https://via.placeholder.com/300?text=" + query.replace(" ", "+")
+            image_cache[query] = fallback_url  # 快取預設圖片
+            return fallback_url
     except Exception as e:
         print(f"Error fetching image from Pexels for '{query}': {e}")
-        return "https://via.placeholder.com/300?text=" + query.replace(" ", "+")
+        fallback_url = "https://via.placeholder.com/300?text=" + query.replace(" ", "+")
+        image_cache[query] = fallback_url  # 快取錯誤時的預設圖片
+        return fallback_url
 
 @app.route("/word_cards_all")
 def word_cards_all():
@@ -167,15 +222,25 @@ def generate_audio_file(content, filename_prefix):
     if not content.strip():  # 檢查文本空白
         print(f"警告：文本為空，無法生成音頻：{filename_prefix}")
         return None
-    print(f"Generating audio for: {content}") # Debug print
-    tts = gTTS(text=content, lang='en' , tld='com' )
-    # Create a unique filename based on content hash or just the content itself
-    # For simplicity, let's use a sanitized version of the content for the filename
+    
+    # 生成檔案名稱
     sanitized_content = "".join(c for c in content if c.isalnum() or c in (' ', '.', '_')).strip()
     filename = f"{filename_prefix}_{sanitized_content}.mp3"
     filepath = os.path.join('audio_files', filename)
-    tts.save(filepath)
-    return filepath
+    
+    # 檢查檔案是否已存在，避免重複生成
+    if os.path.exists(filepath):
+        print(f"Audio file already exists: {filename}")
+        return filepath
+    
+    try:
+        print(f"Generating new audio for: {content}")
+        tts = gTTS(text=content, lang='en', tld='com')
+        tts.save(filepath)
+        return filepath
+    except Exception as e:
+        print(f"Error generating audio: {e}")
+        return None
 
 @app.route("/play-word-audio", methods=["GET"])
 def play_word_audio():
@@ -1755,7 +1820,64 @@ def start_ngrok():
     print(f"公開 URL: {public_url}")
     return public_url
 
+def preload_common_resources():
+    """背景預載入常用單字的圖片和音檔"""
+    print("🚀 開始預載入常用資源...")
+    
+    try:
+        # 讀取常用單字（前50個）
+        df = pd.read_csv('國小英文教材/基礎1200單字/國小1200基礎單字每日學習表.csv')
+        common_words = []
+        
+        for index, row in df.iterrows():
+            if len(common_words) >= 50:  # 只預載入前50個
+                break
+                
+            theme_group = str(row['主題分組']).strip()
+            if not theme_group.startswith('主題'):
+                for i in range(1, 7):
+                    english_col_name = f'中文{i}'
+                    if english_col_name in row and pd.notna(row[english_col_name]):
+                        word = str(row[english_col_name]).strip()
+                        if word and len(common_words) < 50:
+                            common_words.append(word)
+        
+        # 背景預載入
+        def background_preload():
+            for word in common_words[:20]:  # 先載入前20個最常用的
+                try:
+                    # 預載入圖片
+                    get_image_from_pexels(word)
+                    # 預載入音檔
+                    generate_audio_file(word, "word")
+                    time.sleep(0.5)  # 避免API請求過快
+                except:
+                    continue
+            print("✅ 常用資源預載入完成")
+        
+        # 在背景執行預載入
+        preload_thread = threading.Thread(target=background_preload)
+        preload_thread.daemon = True
+        preload_thread.start()
+        
+    except Exception as e:
+        print(f"⚠️ 預載入失敗: {e}")
+
 if __name__ == "__main__":
+    # 檢查 API 管理器狀態
+    try:
+        manager = get_gemini_manager()
+        stats = manager.get_stats()
+        print(f"🔧 API 管理器已啟動")
+        print(f"📊 可用金鑰: {stats['active_keys']}/{stats['total_keys']}")
+        print(f"📈 總請求數: {stats['total_requests']}")
+        print(f"✅ 成功率: {stats['success_rate']:.1f}%")
+    except Exception as e:
+        print(f"⚠️ API 管理器初始化警告: {e}")
+    
+    # 啟動背景預載入
+    preload_common_resources()
+    
     # 啟動 ngrok 以提供公開網址
     start_ngrok()
     

@@ -70,6 +70,27 @@
                 </div>
             </section>
 
+            <!-- API 管理器狀態 -->
+            <section class="api-manager-status">
+                <h2><i class="fas fa-cogs"></i> API 管理器狀態</h2>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card api-status-card">
+                            <div class="card-body">
+                                <div id="api-status-content">
+                                    <div class="loading-spinner">
+                                        <i class="fas fa-spinner fa-spin"></i> 載入 API 狀態中...
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary btn-sm mt-2" onclick="refreshApiStatus()">
+                                    <i class="fas fa-sync-alt"></i> 刷新狀態
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- 學習進度統計 -->
             <section class="progress-stats">
                 <div class="row">
@@ -168,5 +189,156 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <style>
+        .api-manager-status {
+            margin: 30px 0;
+        }
+        .api-status-card {
+            border-left: 4px solid #007bff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .api-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .api-stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .api-stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .api-stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .api-key-details {
+            margin-top: 15px;
+        }
+        .api-key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #28a745;
+        }
+        .api-key-item.failed {
+            border-left-color: #dc3545;
+        }
+        .loading-spinner {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+        }
+        .status-healthy {
+            color: #28a745;
+        }
+        .status-unhealthy {
+            color: #dc3545;
+        }
+    </style>
+
+    <script>
+        // 載入 API 管理器狀態
+        async function loadApiStatus() {
+            try {
+                const response = await fetch('/api/manager/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayApiStats(data.stats);
+                } else {
+                    displayApiError(data.error);
+                }
+            } catch (error) {
+                console.error('載入 API 狀態失敗:', error);
+                displayApiError('無法連接到 API 管理器');
+            }
+        }
+
+        function displayApiStats(stats) {
+            const content = document.getElementById('api-status-content');
+            
+            const html = `
+                <div class="api-stats-overview">
+                    <h5><i class="fas fa-server"></i> API 服務概況</h5>
+                    <div class="api-stats-grid">
+                        <div class="api-stat-item">
+                            <div class="api-stat-value">${stats.active_keys}/${stats.total_keys}</div>
+                            <div class="api-stat-label">可用金鑰</div>
+                        </div>
+                        <div class="api-stat-item">
+                            <div class="api-stat-value">${stats.total_requests}</div>
+                            <div class="api-stat-label">總請求數</div>
+                        </div>
+                        <div class="api-stat-item">
+                            <div class="api-stat-value ${stats.success_rate >= 95 ? 'status-healthy' : 'status-unhealthy'}">${stats.success_rate.toFixed(1)}%</div>
+                            <div class="api-stat-label">成功率</div>
+                        </div>
+                        <div class="api-stat-item">
+                            <div class="api-stat-value ${stats.failed_keys === 0 ? 'status-healthy' : 'status-unhealthy'}">${stats.failed_keys}</div>
+                            <div class="api-stat-label">失效金鑰</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="api-key-details">
+                    <h6><i class="fas fa-key"></i> 金鑰詳細狀態</h6>
+                    ${Object.entries(stats.key_details).map(([keyId, details]) => `
+                        <div class="api-key-item ${details.status === 'failed' ? 'failed' : ''}">
+                            <span>
+                                <strong>金鑰 ...${keyId}</strong>
+                                <small class="text-muted">(${details.status})</small>
+                            </span>
+                            <span>
+                                ${details.requests} 次請求 | 
+                                ${details.success_rate.toFixed(1)}% 成功率 |
+                                ${details.avg_response_time}s 平均響應
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        }
+
+        function displayApiError(error) {
+            const content = document.getElementById('api-status-content');
+            content.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>API 管理器狀態載入失敗</strong><br>
+                    ${error}
+                </div>
+            `;
+        }
+
+        function refreshApiStatus() {
+            const content = document.getElementById('api-status-content');
+            content.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 重新載入中...</div>';
+            loadApiStatus();
+        }
+
+        // 頁面載入時自動載入 API 狀態
+        document.addEventListener('DOMContentLoaded', function() {
+            loadApiStatus();
+        });
+
+        // 每60秒自動刷新 API 狀態
+        setInterval(loadApiStatus, 60000);
+    </script>
 </body>
 </html>
