@@ -128,3 +128,88 @@ class QuizQuestion(db.Model):
     answered_at = db.Column(db.DateTime, nullable=True)
     attempt = db.relationship('QuizAttempt', backref=db.backref('questions', lazy=True))
     word = db.relationship('Vocabulary', backref=db.backref('quiz_questions', lazy=True))
+
+# 口說練習相關模型
+class SpeakingSession(db.Model):
+    """口說練習會話記錄"""
+    __tablename__ = 'speaking_sessions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    topic_id = db.Column(db.Integer, nullable=False)
+    topic_title = db.Column(db.String(200), nullable=False)
+    cefr_level = db.Column(db.String(10), nullable=False)
+    scenario_index = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(db.String(20), nullable=False, default='active')  # active, completed, abandoned
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    # 關聯
+    user = db.relationship('User', backref=db.backref('speaking_sessions', lazy=True))
+    exchanges = db.relationship('SpeakingExchange', backref='session', lazy=True, cascade='all, delete-orphan')
+
+class SpeakingExchange(db.Model):
+    """口說練習對話交換記錄"""
+    __tablename__ = 'speaking_exchanges'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('speaking_sessions.id'), nullable=False)
+    exchange_order = db.Column(db.Integer, nullable=False)  # 對話順序
+    
+    # AI生成的問題
+    ai_question = db.Column(db.Text, nullable=False)
+    ai_situation = db.Column(db.Text, nullable=True)
+    ai_guidance = db.Column(db.Text, nullable=True)
+    ai_keywords = db.Column(db.Text, nullable=True)  # JSON格式存儲關鍵詞
+    
+    # 用戶回答
+    user_response_text = db.Column(db.Text, nullable=True)
+    user_audio_filename = db.Column(db.String(255), nullable=True)
+    
+    # AI評估
+    ai_feedback = db.Column(db.Text, nullable=True)  # JSON格式存儲評估結果
+    ai_improved_answer = db.Column(db.Text, nullable=True)
+    
+    # 評分
+    grammar_score = db.Column(db.Integer, nullable=True)
+    vocabulary_score = db.Column(db.Integer, nullable=True)
+    fluency_score = db.Column(db.Integer, nullable=True)
+    relevance_score = db.Column(db.Integer, nullable=True)
+    overall_score = db.Column(db.Integer, nullable=True)
+    
+    # 時間戳
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    responded_at = db.Column(db.DateTime, nullable=True)
+    evaluated_at = db.Column(db.DateTime, nullable=True)
+
+class SpeakingProgress(db.Model):
+    """口說練習進度追蹤"""
+    __tablename__ = 'speaking_progress'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    topic_id = db.Column(db.Integer, nullable=False)
+    cefr_level = db.Column(db.String(10), nullable=False)
+    
+    # 統計數據
+    total_sessions = db.Column(db.Integer, nullable=False, default=0)
+    completed_sessions = db.Column(db.Integer, nullable=False, default=0)
+    total_exchanges = db.Column(db.Integer, nullable=False, default=0)
+    
+    # 平均分數
+    avg_grammar_score = db.Column(db.Float, nullable=True)
+    avg_vocabulary_score = db.Column(db.Float, nullable=True)
+    avg_fluency_score = db.Column(db.Float, nullable=True)
+    avg_relevance_score = db.Column(db.Float, nullable=True)
+    avg_overall_score = db.Column(db.Float, nullable=True)
+    
+    # 最佳分數
+    best_overall_score = db.Column(db.Integer, nullable=True)
+    best_session_date = db.Column(db.DateTime, nullable=True)
+    
+    # 時間戳
+    first_attempt = db.Column(db.DateTime, default=datetime.utcnow)
+    last_attempt = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # 關聯
+    user = db.relationship('User', backref=db.backref('speaking_progress', lazy=True))

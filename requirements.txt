@@ -7,3 +7,11 @@ pexels-api-py
 Flask-SQLAlchemy
 pandas
 Flask-Login
+langchain
+langchain-google-genai
+langchain-community
+chromadb
+pypdf
+SpeechRecognition==3.10.0
+pyaudio
+assemblyai
