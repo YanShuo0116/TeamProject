@@ -1,6 +1,5 @@
 """
 輕量化多 API 協作管理器
-功能：負載平衡、錯誤重試、API key 隱藏
 """
 import google.generativeai as genai
 import random
@@ -31,13 +30,12 @@ class APIKeyManager:
                     config = json.load(f)
                     self.api_keys = config.get('api_keys', [])
             else:
-                # 如果沒有配置文件，使用環境變數或預設值
                 self.api_keys = [
                     os.getenv('GEMINI_API_KEY_1', 'AIzaSyDo3-S0kOSPo9O99cTolLQUv3-x3Ebq3kM'),
-                    os.getenv('GEMINI_API_KEY_2', ''),  # 可以添加更多 key
+                    os.getenv('GEMINI_API_KEY_2', ''),  
                     os.getenv('GEMINI_API_KEY_3', ''),
                 ]
-                # 過濾空的 key
+               
                 self.api_keys = [key for key in self.api_keys if key.strip()]
                 
         except Exception as e:
