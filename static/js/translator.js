@@ -1,25 +1,24 @@
+// 移除本地口音切換邏輯，改用全域口音切換器
+// 保留備用的本地切換器（如果需要的話）
 const americanAccent = document.getElementById('americanAccent');
 const britishAccent = document.getElementById('britishAccent');
 
-americanAccent.addEventListener('click', () => {
-    americanAccent.classList.add('active');
-    britishAccent.classList.remove('active');
-    fetch('/update-accent?accent=us')
-        .then(response => response.json())
-        .then(data => {
-            console.log('口音美式');
-        });
-});
+// 如果本地切換器存在且可見，則綁定事件（備用功能）
+if (americanAccent && americanAccent.offsetParent !== null) {
+    americanAccent.addEventListener('click', () => {
+        if (window.globalAccentSwitch) {
+            window.globalAccentSwitch.setAccentPreference('us');
+        }
+    });
+}
 
-britishAccent.addEventListener('click', () => {
-    britishAccent.classList.add('active');
-    americanAccent.classList.remove('active');
-    fetch('/update-accent?accent=co.uk')
-        .then(response => response.json())
-        .then(data => {
-            console.log('口音英式');
-        });
-});
+if (britishAccent && britishAccent.offsetParent !== null) {
+    britishAccent.addEventListener('click', () => {
+        if (window.globalAccentSwitch) {
+            window.globalAccentSwitch.setAccentPreference('co.uk');
+        }
+    });
+}
 
 const form = document.getElementById('translate-form');
 const loading = document.getElementById('loading');
@@ -123,6 +122,9 @@ function showTranslationResult(data) {
 
 function generateResultHTML(data) {
     const { word, translation, explanation, examples } = data;
+    
+    // 獲取當前口音設定
+    const currentAccent = getCurrentAccent();
     
     // 處理翻譯內容
     const translationLines = translation.split('\n').filter(line => line.trim());
@@ -265,7 +267,7 @@ function generateResultHTML(data) {
             </div>
             <div class="audio-container">
                 <audio controls>
-                    <source src="/play-word-audio?word=${encodeURIComponent(word)}" type="audio/mpeg">
+                    <source src="/play-word-audio?word=${encodeURIComponent(word)}&accent=${currentAccent}" type="audio/mpeg">
                     您的瀏覽器不支援音訊播放。
                 </audio>
             </div>
@@ -290,7 +292,7 @@ function generateResultHTML(data) {
                     <p class="translation">${example1.translation}</p>
                     <div class="audio-container">
                         <audio controls>
-                            <source src="/play-word-audio?word=${encodeURIComponent(example1.sentence)}" type="audio/mpeg">
+                            <source src="/play-word-audio?word=${encodeURIComponent(example1.sentence)}&accent=${currentAccent}" type="audio/mpeg">
                             您的瀏覽器不支援音訊播放。
                         </audio>
                     </div>
@@ -304,7 +306,7 @@ function generateResultHTML(data) {
                     <p class="translation">${example2.translation}</p>
                     <div class="audio-container">
                         <audio controls>
-                            <source src="/play-word-audio?word=${encodeURIComponent(example2.sentence)}" type="audio/mpeg">
+                            <source src="/play-word-audio?word=${encodeURIComponent(example2.sentence)}&accent=${currentAccent}" type="audio/mpeg">
                             您的瀏覽器不支援音訊播放。
                         </audio>
                     </div>
@@ -351,26 +353,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 主題切換功能
-    const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
-    
-    // 檢查本地存儲中的主題設置
-    const currentTheme = localStorage.getItem('theme');
-    if (currentTheme) {
-        body.classList.toggle('dark-mode', currentTheme === 'dark');
-        if (themeToggle) {
-            themeToggle.checked = currentTheme === 'dark';
-        }
-    }
-
-    // 主題切換事件監聽
-    if (themeToggle) {
-        themeToggle.addEventListener('change', function() {
-            body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', body.classList.contains('dark-mode') ? 'dark' : 'light');
-        });
-    }
+    // 移除主題切換功能，保持暗色模式
+    document.body.classList.add('dark-mode');
 
     // 載入動畫
     const loadingScreen = document.querySelector('.loading-screen');
@@ -435,4 +419,51 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+    
+    // 監聽全域口音變更事件
+    window.addEventListener('accentChanged', function(event) {
+        console.log('翻譯頁面：口音已變更為', event.detail.accent);
+        // 同步更新本地切換器的顯示（如果存在的話）
+        updateLocalAccentDisplay(event.detail.accent);
+        // 重新載入當前顯示的音頻
+        reloadCurrentAudio(event.detail.accent);
+    });
 });
+
+function updateLocalAccentDisplay(accent) {
+    // 同步更新本地口音切換器的顯示狀態
+    if (americanAccent && britishAccent) {
+        if (accent === 'us') {
+            americanAccent.classList.add('active');
+            britishAccent.classList.remove('active');
+        } else if (accent === 'co.uk') {
+            britishAccent.classList.add('active');
+            americanAccent.classList.remove('active');
+        }
+    }
+}
+
+function getCurrentAccent() {
+    // 獲取當前口音設定的輔助函數
+    return window.globalAccentSwitch ? window.globalAccentSwitch.getCurrentAccent() : 'us';
+}
+
+function reloadCurrentAudio(newAccent) {
+    // 重新載入當前顯示結果中的所有音頻
+    const audioElements = document.querySelectorAll('#result-container audio source');
+    audioElements.forEach(source => {
+        const currentSrc = source.src;
+        if (currentSrc && currentSrc.includes('/play-word-audio')) {
+            // 更新音頻 URL 中的口音參數
+            const url = new URL(currentSrc);
+            url.searchParams.set('accent', newAccent);
+            source.src = url.toString();
+            
+            // 重新載入音頻元素
+            const audioElement = source.parentElement;
+            if (audioElement && audioElement.tagName === 'AUDIO') {
+                audioElement.load();
+            }
+        }
+    });
+}

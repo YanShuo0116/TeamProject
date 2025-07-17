@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/speaking_practice.css') }}">
 </head>
 <body class="dark-mode">
@@ -38,6 +39,7 @@
                         <a class="nav-link active" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
                     </li>
                 </ul>
+                <!-- 口音切換器會由 global_accent_switch.js 自動添加到這裡 -->
             </div>
         </div>
     </nav>
@@ -141,6 +143,7 @@
     <audio id="hiddenAudioPlayer" style="display: none;"></audio>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/speaking_practice.js') }}"></script>
 </body>
 </html>

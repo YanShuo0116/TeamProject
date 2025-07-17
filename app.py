@@ -29,7 +29,7 @@ from langchain_community.vectorstores import Chroma # Updated import
 
 #小小設定一下
 lock = threading.Lock()
-Us_uk="us"
+# 移除全域變數 Us_uk，改用資料庫儲存用戶偏好
 
 # 配置API                                                                            #README.MD裡有網址
 ngrok.set_auth_token("2ywXahUIQ4BEQlBrwDT4DZ5B7xg_2B3tbiXUwG9YS9oqgcfxm")     # 替換為你的 ngrok 金鑰!!!!!!!!!!!!
@@ -227,14 +227,18 @@ We need to limit the number of participants in the event.
 
 
 
-def generate_audio_file(content, filename_prefix):
+def generate_audio_file(content, filename_prefix, user_accent=None):
+    """生成音頻檔案，支援用戶口音偏好"""
     if not content.strip():  # 檢查文本空白
         print(f"警告：文本為空，無法生成音頻：{filename_prefix}")
         return None
     
-    # 生成檔案名稱
+    # 獲取用戶口音偏好
+    accent = get_user_accent_preference(user_accent)
+    
+    # 生成檔案名稱（包含口音資訊）
     sanitized_content = "".join(c for c in content if c.isalnum() or c in (' ', '.', '_')).strip()
-    filename = f"{filename_prefix}_{sanitized_content}.mp3"
+    filename = f"{filename_prefix}_{sanitized_content}_{accent}.mp3"
     filepath = os.path.join('audio_files', filename)
     
     # 檢查檔案是否已存在，避免重複生成
@@ -243,19 +247,43 @@ def generate_audio_file(content, filename_prefix):
         return filepath
     
     try:
-        print(f"Generating new audio for: {content}")
-        tts = gTTS(text=content, lang='en', tld='com')
+        print(f"Generating new audio for: {content} (accent: {accent})")
+        # 根據口音設定選擇 TLD
+        tld = 'com' if accent == 'us' else 'co.uk'
+        tts = gTTS(text=content, lang='en', tld=tld)
         tts.save(filepath)
         return filepath
     except Exception as e:
         print(f"Error generating audio: {e}")
         return None
 
+def get_user_accent_preference(override_accent=None):
+    """獲取用戶的口音偏好設定"""
+    if override_accent:
+        return override_accent
+    
+    # 優先使用已登入用戶的資料庫設定
+    if current_user.is_authenticated:
+        return current_user.preferred_accent
+    
+    # 其次使用 session 中的設定
+    if 'preferred_accent' in session:
+        return session['preferred_accent']
+    
+    # 預設使用美式口音
+    return 'us'
+
 @app.route("/play-word-audio", methods=["GET"])
 def play_word_audio():
+    """播放單字音頻，使用用戶偏好的口音"""
     word = request.args.get("word")
+    accent = request.args.get("accent")  # 可選的口音參數
+    
     if word:
-        audio_filepath = generate_audio_file(word, "word")
+        # 使用用戶偏好的口音生成音頻
+        user_accent = accent or get_user_accent_preference()
+        audio_filepath = generate_audio_file(word, "word", user_accent)
+        
         if audio_filepath and os.path.exists(audio_filepath):
             return send_file(audio_filepath)
     return "音檔不存在", 404
@@ -291,14 +319,58 @@ def we():
 
 @app.route("/update-accent", methods=["GET"])
 def update_accent():
-    global Us_uk
+    """更新用戶的口音偏好設定"""
     accent = request.args.get('accent')
-    if accent in ['us', 'co.uk']:
-        Us_uk = accent  # 更新口音
-        return jsonify({"status": "success", "accent": Us_uk}), 200
-    return jsonify({"status": "error", "message": "Invalid accent"}), 400
+    
+    if accent not in ['us', 'co.uk']:
+        return jsonify({"status": "error", "message": "Invalid accent"}), 400
+    
+    # 如果用戶已登入，儲存到資料庫
+    if current_user.is_authenticated:
+        try:
+            current_user.preferred_accent = accent
+            db.session.commit()
+            return jsonify({
+                "status": "success", 
+                "accent": accent,
+                "saved_to_db": True,
+                "message": "口音偏好已儲存"
+            }), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": "error", 
+                "message": f"儲存失敗: {str(e)}"
+            }), 500
+    else:
+        # 未登入用戶，儲存到 session
+        session['preferred_accent'] = accent
+        return jsonify({
+            "status": "success", 
+            "accent": accent,
+            "saved_to_db": False,
+            "message": "口音偏好已暫存（登入後將永久儲存）"
+        }), 200
 
 
+
+@app.route("/api/get-user-accent", methods=["GET"])
+def get_user_accent():
+    """獲取用戶的口音偏好設定"""
+    try:
+        accent = get_user_accent_preference()
+        return jsonify({
+            "success": True,
+            "accent": accent,
+            "is_authenticated": current_user.is_authenticated,
+            "source": "database" if current_user.is_authenticated else "session_or_default"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "accent": "us"  # 預設值
+        }), 500
 
 @app.route("/translator", methods=["GET"])
 def translator():
@@ -1031,8 +1103,10 @@ def generate_speaking_audio():
         
         # 只為英文文本生成語音
         if language == 'en':
-            # 使用現有的音檔生成函數
-            audio_filepath = generate_audio_file(text, "speaking")
+            # 獲取口音參數
+            accent = data.get('accent')
+            # 使用現有的音檔生成函數，支援口音參數
+            audio_filepath = generate_audio_file(text, "speaking", accent)
             
             if audio_filepath and os.path.exists(audio_filepath):
                 return jsonify({

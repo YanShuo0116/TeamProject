@@ -1,6 +1,6 @@
 /* 基本變數 */
 :root {
-    --primary-color: #007bff;
+    --primary-color: #333333;
     --secondary-color: #6c757d;
     --dark-bg: #1a1a1a;
     --light-bg: #ffffff;
@@ -35,71 +35,10 @@ body.dark-mode {
     color: var(--text-light);
 }
 
-/* 導航欄 */
-.navbar {
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 1rem 2rem;
-    transition: all 0.3s ease;
-}
-
-.navbar-brand {
-    font-family: 'Arial', sans-serif;
-    font-size: 1.2rem;
-    color: var(--text-light) !important;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.navbar-brand i {
-    font-size: 1.4rem;
-}
-
-.navbar-brand:hover {
-    color: var(--primary-color) !important;
-}
-
-.navbar-toggler {
-    border: none;
-    padding: 0.5rem;
-    outline: none !important;
-}
-
-.navbar-toggler:focus {
-    box-shadow: none;
-}
-
-.nav-link {
-    color: var(--text-light) !important;
-    margin: 0 1rem;
-    transition: color 0.3s ease;
-    position: relative;
-    padding: 0.5rem 0;
-}
-
-.nav-link:hover {
-    color: var(--primary-color) !important;
-}
-
-.nav-link::after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: 0;
-    left: 50%;
-    background-color: var(--primary-color);
-    transition: all 0.3s ease;
-    transform: translateX(-50%);
-}
-
-.nav-link:hover::after {
-    width: 100%;
-}
+/* 導航欄樣式已移至 global_navbar.css */
 
 /* 主要內容區域 */
 .main-content {
-    padding-top: 80px;
     min-height: 100vh;
     background-color: var(--light-bg);
     transition: background-color 0.3s ease;
@@ -179,7 +118,7 @@ body.dark-mode {
 }
 
 .sub-feature-btn:hover, .single-feature-btn:hover {
-    background-color: #0056b3;
+    background-color: #555555;
     text-decoration: none;
     color: white;
 }

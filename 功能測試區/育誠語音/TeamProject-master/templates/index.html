@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>語音評測系統</title>
+</head>
+<body>
+  <h1>語音評測系統</h1>
+
+  <label for="reference">請輸入參考文字 (英文)：</label><br/>
+  <input type="text" id="reference" placeholder="輸入你想念的英文句子" style="width: 300px;" /><br/><br/>
+
+  <button onclick="startRecording()">開始錄音</button>
+  <button onclick="stopRecording()">停止錄音</button>
+
+  <p id="status"></p>
+
+  <p id="result"></p>
+
+  <audio id="audioPlayer" controls style="display:none;"></audio>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+    const audioPlayer = document.getElementById("audioPlayer");
+
+    function startRecording() {
+      if (isRecording) return;
+
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        statusEl.textContent = "🎙️ 錄音中...";
+
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        isRecording = true;
+
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.start();
+      }).catch(err => {
+        statusEl.textContent = "❌ 無法存取麥克風：" + err.message;
+      });
+    }
+
+    function stopRecording() {
+      if (!isRecording || !mediaRecorder) return;
+
+      mediaRecorder.onstop = async () => {
+        statusEl.textContent = "⏳ 上傳中...";
+
+        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.wav");
+        formData.append("reference", document.getElementById("reference").value);
+
+        try {
+          const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error("伺服器錯誤：" + errorText);
+          }
+
+          const result = await response.json();
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          resultEl.textContent =
+            `你說的是：${result.transcribed}
+應該是：${result.reference}
+相似度：${(result.similarity * 100).toFixed(1)}%
+結果：${result.match ? "✅ 正確" : "❌ 有誤"}`;
+
+          // 播放音檔（防止快取）
+          if (result.audio_url) {
+            audioPlayer.src = result.audio_url;
+            audioPlayer.style.display = "block";
+            audioPlayer.load();
+            audioPlayer.play().catch(e => {
+              console.log("自動播放失敗:", e);
+            });
+          }
+
+          statusEl.textContent = "✅ 分析完成";
+        } catch (error) {
+          statusEl.textContent = "❌ 發生錯誤：" + error.message;
+        }
+
+        isRecording = false;
+      };
+
+      mediaRecorder.stop();
+      statusEl.textContent = "⏹️ 錄音結束，處理中...";
+    }
+  </script>
+</body>
+</html>
+

@@ -297,7 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAudio.currentTime = 0;
         }
         try {
-            const audioResponse = await fetch(`/play-word-audio?word=${encodeURIComponent(word)}`);
+            // 獲取當前口音設定
+            const currentAccent = window.globalAccentSwitch ? window.globalAccentSwitch.getCurrentAccent() : 'us';
+            const audioResponse = await fetch(`/play-word-audio?word=${encodeURIComponent(word)}&accent=${currentAccent}`);
             if (audioResponse.ok) {
                 const audioBlob = await audioResponse.blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
@@ -908,6 +910,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return false; // 表示未處理，需要其他錯誤處理
     }
+
+    // 監聽全域口音變更事件
+    window.addEventListener('accentChanged', function(event) {
+        console.log('單字學習頁面：口音已變更為', event.detail.accent);
+        // 重新載入當前播放的音頻（如果有的話）
+        if (currentAudio) {
+            const currentWord = words[currentWordIndex];
+            if (currentWord) {
+                // 停止當前音頻
+                currentAudio.pause();
+                currentAudio = null;
+                // 使用新口音重新播放
+                setTimeout(() => {
+                    playAudio(currentWord.english);
+                }, 100);
+            }
+        }
+    });
 
     // 初始化載入主題和課次
     loadThemesAndLessons();

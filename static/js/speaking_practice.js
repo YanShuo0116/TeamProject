@@ -1024,6 +1024,9 @@ class SpeakingPractice {
 
     async playAudio(text) {
         try {
+            // 獲取當前口音設定
+            const currentAccent = window.globalAccentSwitch ? window.globalAccentSwitch.getCurrentAccent() : 'us';
+            
             // 優先使用後端 TTS 服務
             const response = await fetch('/api/speaking/generate_audio', {
                 method: 'POST',
@@ -1032,7 +1035,8 @@ class SpeakingPractice {
                 },
                 body: JSON.stringify({
                     text: text,
-                    language: 'en'
+                    language: 'en',
+                    accent: currentAccent
                 })
             });
 
@@ -1268,4 +1272,15 @@ class SpeakingPractice {
 let speakingPractice;
 document.addEventListener('DOMContentLoaded', () => {
     speakingPractice = new SpeakingPractice();
+    
+    // 監聽全域口音變更事件
+    window.addEventListener('accentChanged', function(event) {
+        console.log('口說練習頁面：口音已變更為', event.detail.accent);
+        // 停止當前播放的音頻
+        if (speakingPractice) {
+            speakingPractice.stopAudio();
+        }
+        // 可以在這裡添加其他需要響應口音變更的邏輯
+        console.log('口說練習已切換到', event.detail.accent === 'us' ? '美式口音' : '英式口音');
+    });
 });

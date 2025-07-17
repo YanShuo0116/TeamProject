@@ -84,57 +84,6 @@ body.dark-mode {
     100% { transform: rotate(360deg); }
 }
 
-/* 導航欄 */
-.navbar {
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 1rem 2rem;
-    transition: all 0.3s ease;
-}
-
-.navbar-brand {
-    font-family: 'Arial', sans-serif;
-    font-size: 1.2rem;
-    color: var(--text-light) !important;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.navbar-brand i {
-    font-size: 1.4rem;
-}
-
-.navbar-brand:hover {
-    color: var(--primary-color) !important;
-}
-
-.nav-link {
-    color: var(--text-light) !important;
-    margin: 0 1rem;
-    transition: color 0.3s ease;
-    position: relative;
-    padding: 0.5rem 0;
-}
-
-.nav-link:hover {
-    color: var(--primary-color) !important;
-}
-
-.nav-link::after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: 0;
-    left: 50%;
-    background-color: var(--primary-color);
-    transition: all 0.3s ease;
-    transform: translateX(-50%);
-}
-
-.nav-link:hover::after {
-    width: 100%;
-}
 
 /* 首頁部分 */
 .home {

@@ -66,40 +66,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 主題切換功能
-    const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
-    const icon = themeToggle.querySelector('i');
-
-    // 檢查本地存儲中的主題設置
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        body.classList.add(savedTheme === 'dark' ? 'dark-mode' : 'light-mode');
-        icon.classList.add(savedTheme === 'dark' ? 'fa-sun' : 'fa-moon');
-    } else {
-        // 預設為暗色模式
-        body.classList.add('dark-mode');
-        icon.classList.add('fa-sun');
-        localStorage.setItem('theme', 'dark');
-    }
-
-    // 主題切換點擊事件
-    themeToggle.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (body.classList.contains('dark-mode')) {
-            body.classList.remove('dark-mode');
-            body.classList.add('light-mode');
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-            localStorage.setItem('theme', 'light');
-        } else {
-            body.classList.remove('light-mode');
-            body.classList.add('dark-mode');
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-            localStorage.setItem('theme', 'dark');
-        }
-    });
+    // 移除主題切換功能，保持暗色模式
+    document.body.classList.add('dark-mode');
 });
 
 // 初始化粒子效果

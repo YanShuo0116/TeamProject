@@ -32,11 +32,7 @@ body.dark-mode {
     color: var(--text-light);
 }
 
-.navbar {
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 1rem 2rem;
-    transition: all 0.3s ease;
-}
+/* 導航欄樣式已移至 global_navbar.css */
 
 .navbar-brand {
     font-family: 'Arial', sans-serif;

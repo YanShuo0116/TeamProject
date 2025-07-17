@@ -12,6 +12,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='user') # 'user' or 'admin'
+    preferred_accent = db.Column(db.String(10), nullable=False, default='us') # 'us' or 'co.uk'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
