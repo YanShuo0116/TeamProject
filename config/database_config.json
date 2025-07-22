@@ -1,0 +1,19 @@
+{
+  "vocabulary_1200": {
+    "path": "C:/project/test1/data/jiba.csv",
+    "source_column": "中文",
+    "vector_path": "vector_db/jiba"
+  },
+  "vocabulary_1200_1": {
+    "path": "C:/project/test1/data/國小1200基礎單字每日學習表.pdf",
+    "vector_path": "vector_db/國小1200基礎單字每日學習表_1"
+  },
+  "eng-tea-6-2-1": {
+    "path": "C:\\project\\test1\\data\\eng-tea-6-2-1.pdf",
+    "vector_path": "vector_db/eng-tea-6-2-1"
+  },
+  "elementary_english": {
+    "path": "C:\\project\\test1\\data\\elementary_english.txt",
+    "vector_path": "vector_db/elementary_english"
+  }
+}
