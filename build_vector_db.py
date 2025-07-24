@@ -7,7 +7,8 @@ from langchain.docstore.document import Document
 from langchain_chroma import Chroma
 from src.utils import get_loader
 
-CONFIG_PATH = r"C:\project\test1\config\database_config.json"
+# ✅ 改成相對路徑
+CONFIG_PATH = "config/database_config.json"
 
 def build_vector_db(path_to_file, dataset_name, vector_path, source_column=None):
     if not os.path.exists(path_to_file):
@@ -64,4 +65,4 @@ if __name__ == "__main__":
             print(f" 正在建立：{dataset_name} → {path}")
             build_vector_db(path, dataset_name, vector_path, source_column)
         except Exception as e:
-            print(f" ❌ [{dataset_name}] 建立失敗：{e}")
+            print(f" ❌ [{dataset_name}] 建立失敗：{e}") 

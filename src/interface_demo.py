@@ -12,7 +12,7 @@ from src.safe_gemini_llm import GeminiLLM
 from src.utils import get_loader
 from config import settings
 
-CONFIG_PATH = r"C:\project\test1\config\database_config.json"
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "database_config.json")
 DATA_FOLDER = "data"
 
 manager = DatabaseManager(CONFIG_PATH)

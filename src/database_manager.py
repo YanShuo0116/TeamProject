@@ -7,9 +7,14 @@ from config import settings
 from src.utils import get_loader
 
 class DatabaseManager:
-    def __init__(self, config_path = r"C:\project\test1\config\database_config.json"):
+    def __init__(self, config_path=None):
+        if config_path is None:
+            # ✅ 相對於當前檔案的路徑
+            config_path = os.path.join(os.path.dirname(__file__), "..", "config", "database_config.json")
+
         with open(config_path, "r", encoding="utf-8") as f:
             self.db_config = json.load(f)
+
         self.embedding = HuggingFaceEmbeddings(model_name=settings.EMBEDDING_MODEL_NAME)
 
     def build_vector_db(self, db_name: str) -> None:
