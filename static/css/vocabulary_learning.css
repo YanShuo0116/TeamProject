@@ -1209,3 +1209,292 @@ body.dark-mode {
         max-width: 250px;
     }
 }
+/* 練習覆蓋層樣式 */
+.practice-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.practice-content {
+    background: var(--card-bg-light);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideInUp 0.3s ease;
+}
+
+.dark-mode .practice-content {
+    background: var(--card-bg-dark);
+}
+
+.practice-header {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    color: white;
+    padding: 20px;
+    border-radius: 15px 15px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.practice-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.practice-body {
+    padding: 30px;
+}
+
+/* 語音評測卡片樣式 */
+.voice-eval-card {
+    background: var(--background-light);
+    padding: 25px;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.dark-mode .voice-eval-card {
+    background: var(--background-dark);
+    border-color: #444;
+}
+
+.voice-eval-card .form-control {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 15px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.dark-mode .voice-eval-card .form-control {
+    background: #2a2a2a;
+    border-color: #555;
+    color: white;
+}
+
+.voice-eval-card .controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+/* 翻譯機卡片樣式 */
+.translator-card {
+    background: var(--background-light);
+    padding: 25px;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+}
+
+.dark-mode .translator-card {
+    background: var(--background-dark);
+    border-color: #444;
+}
+
+.input-section {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    margin-bottom: 20px;
+}
+
+.input-section input {
+    flex: 1;
+}
+
+.translation-result {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.dark-mode .translation-result {
+    background: #2a2a2a;
+    border-color: #555;
+}
+
+.translation-section,
+.explanation-section,
+.examples-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.dark-mode .translation-section,
+.dark-mode .explanation-section,
+.dark-mode .examples-section {
+    border-bottom-color: #444;
+}
+
+.translation-section:last-child,
+.explanation-section:last-child,
+.examples-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.translation-text,
+.explanation-text,
+.examples-text {
+    white-space: pre-line;
+    line-height: 1.6;
+    margin-top: 10px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .practice-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .practice-header {
+        padding: 15px;
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .practice-body {
+        padding: 20px;
+    }
+    
+    .input-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .voice-eval-card .controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* 例句語音按鈕樣式 */
+.example-sentence {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.dark-mode .example-sentence {
+    border-bottom-color: #444;
+}
+
+.sentence-text {
+    flex: 1;
+    margin-right: 15px;
+    line-height: 1.5;
+}
+
+.audio-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    min-width: 40px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.audio-btn:hover {
+    background: linear-gradient(135deg, #20c997, #28a745);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.audio-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.example-line, .translation-line {
+    padding: 5px 0;
+    line-height: 1.6;
+}
+
+.translation-line {
+    color: #666;
+    font-style: italic;
+}
+
+.dark-mode .translation-line {
+    color: #aaa;
+}
+
+.word-display {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    border-radius: 10px;
+    color: white;
+}
+
+.current-word {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}

@@ -570,6 +570,64 @@ def vocabulary_learning(category):
     # 目前只處理 '1200'，未來可以擴展
     return render_template('vocabulary_learning.html', category=category)
 
+@app.route("/voice", methods=["GET"])
+def voice():
+    """語音評測系統主頁面"""
+    return render_template('voice.html')
+
+@app.route("/voice/upload", methods=["POST"])
+def voice_upload():
+    """語音評測上傳處理"""
+    try:
+        audio = request.files.get("audio")
+        reference = request.form.get("reference", "").strip().lower()
+
+        if not audio:
+            return jsonify({"error": "未收到音訊檔"}), 400
+
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(audio.filename)
+        
+        # 確保上傳目錄存在
+        upload_folder = "uploads"
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        filepath = os.path.join(upload_folder, filename)
+        audio.save(filepath)
+
+        # 使用現有的語音轉文字功能
+        transcription_result = speech_to_text(filepath)
+        
+        if transcription_result.get('success'):
+            predicted_text = transcription_result.get('text', '').strip().lower()
+            
+            # 計算相似度
+            try:
+                import Levenshtein
+                similarity = Levenshtein.ratio(reference, predicted_text)
+            except ImportError:
+                similarity = 1.0 if reference == predicted_text else 0.0
+
+            return jsonify({
+                "reference": reference,
+                "transcribed": predicted_text,
+                "similarity": round(similarity, 2),
+                "match": similarity >= 0.3,
+                "audio_url": f"/uploads/{filename}?t={int(time.time())}"
+            })
+        else:
+            return jsonify({
+                "error": transcription_result.get('error', '語音識別失敗')
+            }), 500
+            
+    except Exception as e:
+        return jsonify({"error": f"處理失敗: {str(e)}"}), 500
+
+@app.route("/uploads/<filename>")
+def uploaded_file(filename):
+    """提供上傳的檔案"""
+    return send_from_directory("uploads", filename)
+
 @app.route("/speaking_practice", methods=["GET"])
 def speaking_practice():
     """口說練習主頁面"""
@@ -2626,8 +2684,12 @@ if __name__ == "__main__":
     # 啟動背景預載入
     preload_common_resources()
     
-    # 啟動 ngrok 以提供公開網址
-    start_ngrok()
+    # 嘗試啟動 ngrok（如果失敗就跳過）
+    try:
+        start_ngrok()
+    except Exception as e:
+        print(f"⚠️ ngrok 啟動失敗（可能已有其他會話運行）: {e}")
+        print("📱 應用將在本地運行，請使用 http://localhost:8000")
     
     # 啟動定時清理任務
     import threading

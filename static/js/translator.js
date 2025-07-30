@@ -343,6 +343,14 @@ function initializeAudioControls() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // 自動填入單字（如果從URL參數傳來）
+    const params = new URLSearchParams(window.location.search);
+    const word = params.get('word');
+    if (word) {
+        document.getElementById('wordInput').value = word;
+        // 可以選擇自動開始翻譯
+        // translateWord();
+    }
     // 導航欄滾動效果
     const navbar = document.querySelector('.navbar');
     window.addEventListener('scroll', function() {

@@ -336,6 +336,28 @@ document.addEventListener('DOMContentLoaded', () => {
         wordCard.classList.toggle('flipped');
     });
 
+    // 發音練習按鈕事件監聽器
+    const pronunciationBtn = document.getElementById('pronunciationPracticeBtn');
+    if (pronunciationBtn) {
+        pronunciationBtn.addEventListener('click', () => {
+            if (words.length > 0 && currentWordIndex >= 0) {
+                const currentWord = words[currentWordIndex].english;
+                showVoicePracticeOverlay(currentWord);
+            }
+        });
+    }
+
+    // 深入了解按鈕事件監聽器
+    const deepLearningBtn = document.getElementById('deepLearningBtn');
+    if (deepLearningBtn) {
+        deepLearningBtn.addEventListener('click', () => {
+            if (words.length > 0 && currentWordIndex >= 0) {
+                const currentWord = words[currentWordIndex].english;
+                showTranslatorOverlay(currentWord);
+            }
+        });
+    }
+
     nextWordBtn.addEventListener('click', async () => {
         // 標記當前單字為已學習
         if (words.length > 0) {
@@ -932,3 +954,339 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化載入主題和課次
     loadThemesAndLessons();
 });
+
+// 顯示語音練習覆蓋層
+function showVoicePracticeOverlay(word) {
+    // 創建覆蓋層
+    const overlay = document.createElement('div');
+    overlay.className = 'practice-overlay';
+    overlay.innerHTML = `
+        <div class="practice-content">
+            <div class="practice-header">
+                <h3><i class="fas fa-microphone"></i> 發音練習</h3>
+                <button class="close-btn" onclick="closePracticeOverlay()">
+                    <i class="fas fa-times"></i> 返回單字卡
+                </button>
+            </div>
+            <div class="practice-body">
+                <div class="voice-eval-card">
+                    <input type="text" id="overlayReference" class="form-control mb-3" value="${word}" readonly/>
+                    <div class="controls">
+                        <button class="control-btn" onclick="startRecording()">
+                            <i class="fas fa-microphone"></i> 開始錄音
+                        </button>
+                        <button class="control-btn" onclick="stopRecording()">
+                            <i class="fas fa-stop"></i> 停止錄音
+                        </button>
+                    </div>
+                    <p id="overlayStatus" class="mt-3"></p>
+                    <p id="overlayResult" class="mt-2"></p>
+                    <audio id="overlayAudioPlayer" controls style="display:none; margin-top: 1rem;"></audio>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // 載入語音評測腳本功能
+    loadVoiceScript();
+}
+
+// 顯示翻譯機覆蓋層
+function showTranslatorOverlay(word) {
+    const overlay = document.createElement('div');
+    overlay.className = 'practice-overlay';
+    overlay.innerHTML = `
+        <div class="practice-content">
+            <div class="practice-header">
+                <h3><i class="fas fa-language"></i> 深入了解</h3>
+                <button class="close-btn" onclick="closePracticeOverlay()">
+                    <i class="fas fa-times"></i> 返回單字卡
+                </button>
+            </div>
+            <div class="practice-body">
+                <div class="translator-card">
+                    <div class="word-display">
+                        <h4 class="current-word">${word}</h4>
+                    </div>
+                    <div id="overlayTranslationResult" class="translation-result mt-4">
+                        <div class="loading-spinner" id="overlayLoadingSpinner">
+                            <div class="spinner"></div>
+                            <p>載入詳細資訊中...</p>
+                        </div>
+                        <div id="overlayTranslationContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // 自動開始翻譯
+    setTimeout(() => {
+        translateOverlayWord(word);
+    }, 100);
+}
+
+// 關閉練習覆蓋層
+function closePracticeOverlay() {
+    const overlay = document.querySelector('.practice-overlay');
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
+// 載入語音評測功能
+function loadVoiceScript() {
+    // 語音錄音相關變數
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    const statusEl = document.getElementById("overlayStatus");
+    const resultEl = document.getElementById("overlayResult");
+    const audioPlayer = document.getElementById("overlayAudioPlayer");
+
+    // 開始錄音函數
+    window.startRecording = function() {
+        if (isRecording) return;
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            statusEl.textContent = "🎙️ 錄音中...";
+
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            isRecording = true;
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.start();
+        }).catch(err => {
+            statusEl.textContent = "❌ 無法存取麥克風：" + err.message;
+        });
+    }
+
+    // 停止錄音函數
+    window.stopRecording = function() {
+        if (!isRecording || !mediaRecorder) return;
+
+        mediaRecorder.onstop = async () => {
+            statusEl.textContent = "⏳ 辨識中...";
+
+            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const formData = new FormData();
+            formData.append("audio", audioBlob, "recording.wav");
+            formData.append("reference", document.getElementById("overlayReference").value);
+
+            try {
+                const response = await fetch('/voice/upload', {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error("伺服器錯誤：" + errorText);
+                }
+
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                resultEl.textContent =
+                    `你說的是：${result.transcribed}\n應該是：${result.reference}\n相似度：${(result.similarity * 100).toFixed(1)}%\n結果：${result.match ? "✅ 正確" : "❌ 有誤"}`;
+
+                // 播放音檔（防止快取）
+                if (result.audio_url) {
+                    audioPlayer.src = result.audio_url;
+                    audioPlayer.style.display = "block";
+                    audioPlayer.load();
+                    audioPlayer.play().catch(e => {
+                        console.log("自動播放失敗:", e);
+                    });
+                }
+
+                statusEl.textContent = "✅ 分析完成";
+            } catch (error) {
+                statusEl.textContent = "❌ 發生錯誤：" + error.message;
+            }
+
+            isRecording = false;
+        };
+
+        mediaRecorder.stop();
+        statusEl.textContent = "⏹️ 錄音結束，處理中...";
+    }
+}
+
+// 翻譯覆蓋層中的單字
+function translateOverlayWord(wordParam) {
+    const word = wordParam || document.getElementById('overlayWordInput')?.value.trim();
+    if (!word) return;
+    
+    const loadingSpinner = document.getElementById('overlayLoadingSpinner');
+    const resultDiv = document.getElementById('overlayTranslationResult');
+    const contentDiv = document.getElementById('overlayTranslationContent');
+    
+    loadingSpinner.style.display = 'block';
+    resultDiv.style.display = 'block';
+    contentDiv.innerHTML = '';
+    
+    // 調用翻譯API
+    fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ word: word })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.session_id) {
+            checkTranslationStatus(data.session_id);
+        } else {
+            throw new Error('翻譯請求失敗');
+        }
+    })
+    .catch(error => {
+        loadingSpinner.style.display = 'none';
+        contentDiv.innerHTML = `<div class="error">翻譯失敗: ${error.message}</div>`;
+    });
+}
+
+// 檢查翻譯狀態
+function checkTranslationStatus(sessionId) {
+    const loadingSpinner = document.getElementById('overlayLoadingSpinner');
+    const contentDiv = document.getElementById('overlayTranslationContent');
+    
+    fetch(`/api/translation_status/${sessionId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'completed') {
+            loadingSpinner.style.display = 'none';
+            
+            // 解析例句並添加語音按鈕
+            const examplesWithAudio = parseExamplesAndAddAudio(data.examples);
+            
+            contentDiv.innerHTML = `
+                <div class="translation-section">
+                    <h4>翻譯結果</h4>
+                    <div class="translation-text">${data.translation}</div>
+                </div>
+                <div class="explanation-section">
+                    <h4>相關詞語</h4>
+                    <div class="explanation-text">${data.explanation}</div>
+                </div>
+                <div class="examples-section">
+                    <h4>例句</h4>
+                    <div class="examples-text">${examplesWithAudio}</div>
+                </div>
+            `;
+        } else if (data.status === 'failed') {
+            loadingSpinner.style.display = 'none';
+            contentDiv.innerHTML = '<div class="error">翻譯失敗，請稍後再試</div>';
+        } else {
+            // 繼續檢查狀態
+            setTimeout(() => checkTranslationStatus(sessionId), 1000);
+        }
+    })
+    .catch(error => {
+        loadingSpinner.style.display = 'none';
+        contentDiv.innerHTML = `<div class="error">檢查翻譯狀態失敗: ${error.message}</div>`;
+    });
+}
+
+// 解析例句並添加語音播放按鈕
+function parseExamplesAndAddAudio(examples) {
+    if (!examples) return '';
+    
+    // 將例句按行分割
+    const lines = examples.split('\n');
+    let result = '';
+    
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line) return;
+        
+        // 檢查是否為英文例句（不包含"翻譯:"）
+        if (line && !line.includes('翻譯:') && !line.includes('翻译:')) {
+            // 判斷是否為英文句子（包含英文字母且以句號、問號或驚嘆號結尾）
+            if (/[a-zA-Z]/.test(line) && /[.!?]$/.test(line.trim())) {
+                const cleanSentence = line.trim();
+                const audioId = 'audio_' + Math.random().toString(36).substr(2, 9);
+                result += `
+                    <div class="example-sentence">
+                        <span class="sentence-text">${line}</span>
+                        <button class="audio-btn" onclick="playExampleAudio('${cleanSentence}', '${audioId}')" id="${audioId}">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                result += `<div class="example-line">${line}</div>`;
+            }
+        } else {
+            result += `<div class="translation-line">${line}</div>`;
+        }
+    });
+    
+    return result;
+}
+
+// 播放例句語音
+function playExampleAudio(sentence, buttonId) {
+    const button = document.getElementById(buttonId);
+    if (!button) return;
+    
+    // 更新按鈕狀態
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    // 獲取用戶口音偏好
+    const accent = getUserAccentPreference();
+    
+    // 播放音頻
+    const audioUrl = `/play-word-audio?word=${encodeURIComponent(sentence)}&accent=${accent}`;
+    
+    const audio = new Audio(audioUrl);
+    
+    audio.onloadstart = () => {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    };
+    
+    audio.oncanplay = () => {
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.disabled = false;
+    };
+    
+    audio.onended = () => {
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.disabled = false;
+    };
+    
+    audio.onerror = () => {
+        button.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        button.disabled = false;
+        setTimeout(() => {
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        }, 2000);
+    };
+    
+    audio.play().catch(error => {
+        console.error('Audio play failed:', error);
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.disabled = false;
+    });
+}
+
+// 獲取用戶口音偏好（簡化版）
+function getUserAccentPreference() {
+    // 可以從全域變數或 localStorage 獲取
+    return localStorage.getItem('preferred_accent') || 'us';
+}
