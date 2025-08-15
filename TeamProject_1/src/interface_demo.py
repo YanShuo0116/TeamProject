@@ -27,6 +27,11 @@ def ask_question(query, selected_dbs):
         return "請輸入問題。"
     if not selected_dbs:
         return "請至少選擇一個資料庫。"
+
+    api_key = get_key("gemini")
+    if not api_key:
+        return "❌ 未設定 Gemini API 金鑰，請先在下方新增。"
+
     db_key = tuple(sorted(selected_dbs))
     if db_key not in qa_system_cache:
         qa_system_cache[db_key] = QASystem(list(selected_dbs))

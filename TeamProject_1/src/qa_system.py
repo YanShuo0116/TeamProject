@@ -5,14 +5,20 @@ from langchain_chroma import Chroma
 from langchain.retrievers import EnsembleRetriever
 from src.database_manager import DatabaseManager
 from src.safe_gemini_llm import GeminiLLM
-from config import settings
+from src.api_key_manager import get_key  # ✅ 改用 API Key Manager
 import re
 
 class QASystem:
     def __init__(self, db_names: list[str]):
         self.db_names = db_names
         self.db_manager = DatabaseManager()
-        self.llm = GeminiLLM(api_key=settings.GEMINI_API_KEY)
+
+        # ✅ 從 API Key Manager 取得 Gemini API Key
+        api_key = get_key("gemini")
+        if not api_key:
+            raise ValueError("❌ 沒有設定 Gemini API 金鑰，請先到 API Key Manager 設定")
+
+        self.llm = GeminiLLM(api_key=api_key)
 
         # 收集所有 retrievers
         self.retrievers: list[VectorStoreRetriever] = []
