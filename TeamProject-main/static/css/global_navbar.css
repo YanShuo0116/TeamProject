@@ -1,0 +1,273 @@
+/* 全域導覽列樣式 - 統一所有頁面使用 */
+
+/* CSS 變數定義 */
+:root {
+    --navbar-bg: rgba(0, 0, 0, 0.95);
+    --navbar-brand-color: #ffffff;
+    --navbar-link-color: rgba(255, 255, 255, 0.85);
+    --navbar-link-hover-color: #ffffff;
+    --navbar-link-active-bg: linear-gradient(135deg, #333333 0%, #555555 100%);
+    --navbar-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --navbar-border: rgba(255, 255, 255, 0.1);
+    --transition-speed: 0.3s;
+}
+
+/* 導覽列主體 */
+.navbar {
+    background: var(--navbar-bg);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--navbar-border);
+    box-shadow: var(--navbar-shadow);
+    padding: 0.75rem 2rem;
+    transition: all var(--transition-speed) ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+}
+
+/* 導覽列滾動效果 */
+.navbar.navbar-scrolled {
+    background: rgba(0, 0, 0, 0.98);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    padding: 0.5rem 2rem;
+}
+
+/* 品牌標誌 */
+.navbar-brand {
+    font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--navbar-brand-color) !important;
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    transition: all var(--transition-speed) ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.navbar-brand:hover {
+    color: #cccccc !important;
+    transform: translateY(-1px);
+}
+
+.navbar-brand::before {
+    content: '🚀';
+    font-size: 1.2rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+}
+
+/* 導覽列容器 */
+.navbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 導覽連結 */
+.navbar-nav .nav-link {
+    color: var(--navbar-link-color) !important;
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 12px;
+    transition: all var(--transition-speed) ease;
+    text-decoration: none;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+/* 導覽連結圖示 */
+.navbar-nav .nav-link i {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    transition: all var(--transition-speed) ease;
+}
+
+/* 導覽連結懸停效果 */
+.navbar-nav .nav-link:hover {
+    color: var(--navbar-link-hover-color) !important;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.navbar-nav .nav-link:hover i {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* 活躍狀態 */
+.navbar-nav .nav-link.active {
+    color: var(--navbar-link-hover-color) !important;
+    background: var(--navbar-link-active-bg);
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.navbar-nav .nav-link.active i {
+    opacity: 1;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* 手機版切換按鈕 */
+.navbar-toggler {
+    border: none;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all var(--transition-speed) ease;
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.navbar-toggler:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.navbar-toggler-icon {
+    background-image: none;
+    width: 1.2rem;
+    height: 1.2rem;
+    position: relative;
+}
+
+.navbar-toggler-icon::before {
+    content: '☰';
+    color: white;
+    font-size: 1.2rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* 響應式設計 */
+@media (max-width: 991.98px) {
+    .navbar {
+        padding: 0.5rem 1rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .navbar-nav {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--navbar-border);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.3rem;
+    }
+    
+    .navbar-nav .nav-link {
+        padding: 0.8rem 1rem !important;
+        border-radius: 8px;
+        justify-content: flex-start;
+    }
+    
+    .navbar-nav .nav-link:hover {
+        transform: translateX(5px);
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar {
+        padding: 0.5rem 1rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .navbar-nav .nav-link {
+        font-size: 0.9rem;
+        padding: 0.7rem 0.8rem !important;
+    }
+}
+
+/* 頁面內容上邊距調整 */
+body {
+    padding-top: 80px;
+}
+
+@media (max-width: 991.98px) {
+    body {
+        padding-top: 70px;
+    }
+}
+
+/* 載入動畫 */
+.navbar {
+    animation: slideDown 0.6s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 移除閃光效果 */
+
+/* 深色模式優化 */
+body.dark-mode .navbar {
+    background: rgba(0, 0, 0, 0.95);
+}
+
+body.dark-mode .navbar-nav .nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* 平滑滾動 */
+html {
+    scroll-behavior: smooth;
+}
+
+/* 導覽列項目進入動畫 */
+.navbar-nav .nav-item {
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
+}
+
+.navbar-nav .nav-item:nth-child(1) { animation-delay: 0.1s; }
+.navbar-nav .nav-item:nth-child(2) { animation-delay: 0.2s; }
+.navbar-nav .nav-item:nth-child(3) { animation-delay: 0.3s; }
+.navbar-nav .nav-item:nth-child(4) { animation-delay: 0.4s; }
+.navbar-nav .nav-item:nth-child(5) { animation-delay: 0.5s; }
+.navbar-nav .nav-item:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

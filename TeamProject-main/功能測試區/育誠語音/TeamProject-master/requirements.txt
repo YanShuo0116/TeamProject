@@ -1,0 +1,7 @@
+
+flask
+openai-whisper
+torch
+torchaudio
+torchvision
+python-Levenshtein
