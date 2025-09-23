@@ -1,0 +1,28 @@
+# Web 相關
+flask
+Flask-Cors
+Flask-SQLAlchemy
+Flask-Login
+pyngrok
+gradio
+
+# AI / LLM 相關
+google-generativeai
+langchain
+langchain-google-genai
+langchain-community
+chromadb
+sentence-transformers
+
+# NLP / 文件處理
+pypdf
+pandas
+
+# 語音相關
+gTTS
+SpeechRecognition==3.10.0
+pyaudio
+assemblyai
+
+# 其他 API
+pexels-api-py

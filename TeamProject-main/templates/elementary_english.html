@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國小英文教學</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/elementary_english.css') }}">
+</head>
+<body class="dark-mode">
+
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">專題功能實驗室</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/new_we"><i class="fas fa-users"></i> 關於我們</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <h1 class="page-title">國小英文教學</h1>
+            <div class="translator-container">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h2>基礎1200單字學習</h2>
+                        <a href="#" class="single-feature-btn">開始學習</a>
+                    </div>
+                    <div class="feature-card">
+                        <h2>低年級教材</h2>
+                        <div class="sub-features">
+                            <a href="#" class="sub-feature-btn">AI語音教學</a>
+                            <a href="#" class="sub-feature-btn">AI文法教學</a>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <h2>中年級教材</h2>
+                        <div class="sub-features">
+                            <a href="#" class="sub-feature-btn">AI語音教學</a>
+                            <a href="#" class="sub-feature-btn">AI文法教學</a>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <h2>高年級教材</h2>
+                        <div class="sub-features">
+                            <a href="#" class="sub-feature-btn">AI語音教學</a>
+                            <a href="#" class="sub-feature-btn">AI文法教學</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
+    <script>
+        // 移除主題切換功能，保持暗色模式
+        document.body.classList.add('dark-mode');
+    </script>
+</body>
+</html>

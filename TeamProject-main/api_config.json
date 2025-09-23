@@ -1,0 +1,15 @@
+{
+  "api_keys": [
+    "AIzaSyDo3-S0kOSPo9O99cTolLQUv3-x3Ebq3kM",
+    "AIzaSyDV0Fd8TLDoox9xoq8Ul4wntxi9KdqMXnY",
+    "AIzaSyBbmMLyvRuPAQ8iGqA2ZmYh9GmWFHPq0LQ", 
+    "AIzaSyBDrdPD6ng1qbOKGXt9Olh3qVxVPWm-CJQ",
+    "AIzaSyC04QBJdFari-zz7eHS1vREvUd8GOkzEhE"
+  ],
+  "settings": {
+    "max_retries": 5,
+    "retry_delay": 1,
+    "failure_threshold": 3,
+    "reset_interval_hours": 1
+  }
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口說練習 - 國小英文學習</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/speaking_practice.css') }}">
+</head>
+<body class="dark-mode">
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">專題功能實驗室</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/vocabulary_learning/1200"><i class="fas fa-book-open"></i> 單字學習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
+                    </li>
+                </ul>
+                <!-- 口音切換器會由 global_accent_switch.js 自動添加到這裡 -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="main-content">
+        <div class="container">
+            <h1 class="page-title">
+                <i class="fas fa-microphone"></i> 口說練習
+            </h1>
+
+            <!-- 主題選擇區塊 -->
+            <div id="topicSelectionSection">
+                <div class="row mb-4">
+                    <div class="col-md-8 mx-auto">
+                        <label for="cefrSelect" class="form-label text-center d-block">選擇難度等級 (CEFR)</label>
+                        <select class="form-select text-center" id="cefrSelect">
+                            <option value="A1">A1 - 初級入門 (基礎300-500詞，簡單句型)</option>
+                            <option value="A2">A2 - 初級進階 (常用600-1000詞，基本時態)</option>
+                            <option value="B1">B1 - 中級入門 (進階1000-1500詞，複雜句型)</option>
+                            <option value="B2">B2 - 中級進階 (豐富詞彙，複合句型)</option>
+                            <option value="C1">C1 - 高級入門 (學術詞彙，高級語法)</option>
+                            <option value="C2">C2 - 高級精通 (母語水準，專業表達)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h2 class="section-title">選擇練習主題</h2>
+                <div class="row" id="topicCardsContainer">
+                    <!-- 主題卡片將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+
+            <!-- 聊天室區塊 -->
+            <div id="chatSection" style="display: none;">
+                <div class="chat-header">
+                    <button class="btn btn-secondary" id="backToTopicsBtn">
+                        <i class="fas fa-arrow-left"></i> 返回主題選擇
+                    </button>
+                    <h3 id="currentTopicTitle"></h3>
+                    <div class="difficulty-badge" id="currentDifficulty"></div>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- 聊天訊息將動態添加 -->
+                    </div>
+                    
+                    <div class="chat-input-area">
+                        <div class="recording-controls">
+                            <button class="btn btn-primary btn-lg" id="recordBtn">
+                                <i class="fas fa-microphone"></i> 開始錄音
+                            </button>
+                            <button class="btn btn-danger btn-lg" id="stopRecordBtn" style="display: none;">
+                                <i class="fas fa-stop"></i> 停止錄音
+                            </button>
+                            <div class="recording-status" id="recordingStatus"></div>
+                        </div>
+                        
+                        <div class="audio-playback" id="audioPlayback" style="display: none;">
+                            <audio controls id="userAudio"></audio>
+                            <div class="playback-controls">
+                                <button class="btn btn-success" id="submitAudioBtn">
+                                    <i class="fas fa-paper-plane"></i> 提交回答
+                                </button>
+                                <button class="btn btn-warning" id="reRecordBtn">
+                                    <i class="fas fa-redo"></i> 重新錄音
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="session-controls">
+                    <button class="btn btn-info" id="nextQuestionBtn" style="display: none;">
+                        <i class="fas fa-forward"></i> 下一題
+                    </button>
+                    <button class="btn btn-success" id="endSessionBtn" style="display: none;">
+                        <i class="fas fa-check"></i> 結束練習
+                    </button>
+                </div>
+            </div>
+
+            <!-- 載入指示器 -->
+            <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                <div class="spinner"></div>
+                <p>處理中...</p>
+            </div>
+
+            <!-- 練習記錄區塊 -->
+            <div id="historySection" style="display: none;">
+                <h2 class="section-title">練習記錄</h2>
+                <div id="historyContainer">
+                    <!-- 練習記錄將動態載入 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音頻播放器 (隱藏) -->
+    <audio id="hiddenAudioPlayer" style="display: none;"></audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/speaking_practice.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  
+  "vocabulary_1200_pdf": {
+    "path": "國小英文教材/基礎1200單字/國小1200基礎單字每日學習表.pdf",
+    "vector_path": "vector_db/基礎1200單字_pdf"
+  },
+  "rag_speaking": {
+    "path": "國小英文教材/RAG教材/口說標準.pdf",
+    "vector_path": "vector_db/口說標準"
+  },
+  "elementary_english": {
+    "path": "國小英文教材/elementary_english_material.txt",
+    "vector_path": "vector_db/elementary_english"
+  },
+  "vocabulary_jiba": {
+    "path": "國小英文教材/jiba.csv",
+    "source_column": "中文",
+    "vector_path": "vector_db/jiba"
+  }
+}
