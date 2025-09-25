@@ -45,26 +45,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // 表單提交處理
     const form = document.querySelector('#teacherForm');
     const loadingSpinner = document.querySelector('.loading-spinner');
-    const resultContainer = document.querySelector('.result-container');
+    const chatHistory = document.querySelector('#chatHistory');
+    const promptInput = document.querySelector('input[name="prompt_Q"]');
+
+    // Function to scroll chat history to bottom
+    function scrollToBottom() {
+        if (chatHistory) {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    }
 
     if (form) {
         form.addEventListener('submit', function(e) {
             // 顯示載入動畫
             loadingSpinner.style.display = 'block';
-            
-            // 如果已有結果，先隱藏
-            if (resultContainer) {
-                resultContainer.style.opacity = '0';
+            // Clear the input field after submission
+            if (promptInput) {
+                promptInput.value = '';
             }
+            // Scroll to bottom to show loading spinner
+            scrollToBottom();
         });
     }
 
-    // 如果頁面載入時有結果，顯示結果
-    if (resultContainer) {
-        resultContainer.style.opacity = '1';
-    }
+    // Scroll to bottom on page load if there's chat history
+    scrollToBottom();
 
-    // 自動調整文本區域高度
+    // 自動調整文本區域高度 (if any, though input is now type=text)
     const textarea = document.querySelector('textarea');
     if (textarea) {
         textarea.addEventListener('input', function() {

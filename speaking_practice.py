@@ -181,78 +181,70 @@ class SpeakingPracticeManager:
         
         print("✅ 初始化完成")
 
-    def generate_question(self, topic_id, cefr_level, scenario_index=0):
+    def generate_question(self, topic_id, cefr_level, scenario_index=0, history=None):
         """生成問題 - 測試版"""
         print(f"🎯 生成問題: 主題{topic_id}, 難度{cefr_level}, 情境{scenario_index}")
         
-        if topic_id not in self.topics:
+        # For custom topics, topic_id might be a string like 'custom'
+        if topic_id != 'custom' and topic_id not in self.topics:
             return {"error": "無效的主題ID"}
         
-        topic = self.topics[topic_id]
+        topic = self.topics.get(topic_id) if topic_id != 'custom' else {'title': 'Custom Topic'}
         level_info = self.cefr_levels.get(cefr_level, self.cefr_levels["A1"])
-        scenario = topic["scenarios"][scenario_index % len(topic["scenarios"])]
+        scenario = topic.get("scenarios", ["Custom scenario"])[scenario_index % len(topic.get("scenarios", ["Custom scenario"]))]
         
         # 如果有 API Manager，嘗試使用 AI 生成
         if self.safe_model:
             try:
-                return self._ai_generate_question(topic, level_info, scenario, topic_id, cefr_level, scenario_index)
+                return self._ai_generate_question(topic, level_info, scenario, topic_id, cefr_level, scenario_index, history)
             except Exception as e:
                 print(f"⚠️ AI 生成失敗，使用模板: {e}")
         
         # 使用模板生成
         return self._template_generate_question(topic, level_info, scenario, topic_id, cefr_level, scenario_index)
 
-    def _ai_generate_question(self, topic, level_info, scenario, topic_id, cefr_level, scenario_index):
+    def _ai_generate_question(self, topic, level_info, scenario, topic_id, cefr_level, scenario_index, history=None):
         """AI 生成問題"""
         
-        # 針對服飾店購物的特殊處理
-        if topic_id == 6:  # Shopping for Clothes
-            prompt = f"""
-            你是專業的英語口說練習老師。請為國小學生生成一個服飾店購物的對話練習：
+        history_string = ""
+        if history:
+            for message in history:
+                if message['role'] == 'ai':
+                    history_string += f"AI Teacher: {message['content']}\n"
+                else:
+                    history_string += f"Student: {message['content']}\n"
 
-            情境: {scenario}
-            CEFR等級: {cefr_level} ({level_info['name']})
-            
-            請按照以下要求生成：
-            1. 情境描述：學生和媽媽在服飾店，學生看到喜歡的T-shirt但不知道尺寸
-            2. 店員的問候語作為英文問題（例如：Can I help you? 或 Do you need any help?）
-            3. 學生應該回答詢問T-shirt尺寸（例如：Do you have this t-shirt in size medium?）
-            4. 提供回答指導和關鍵詞
-            
-            回答格式：
-            {{
-                "situation": "你和媽媽一起到服飾店買衣服，你看到一件你很喜歡的T-shirt，但是不知道有沒有適合你的尺寸。你想問店員是否有你需要的尺寸。",
-                "question": "店員的問候語（英文）",
-                "guidance": "你應該詢問T-shirt的尺寸，可以說 'Do you have this t-shirt in size...' 或 'Excuse me, do you have this in...'",
-                "keywords": ["t-shirt", "size", "medium", "large", "small"],
-                "expected_length": "1-2句話"
-            }}
-            """
-        else:
-            prompt = f"""
-            你是專業的英語口說練習老師。請為國小學生生成一個口說練習問題：
+        # Base prompt
+        prompt = f"""You are a professional and friendly English speaking practice teacher for elementary school students.
+        Your task is to generate a single, relevant question based on the provided context.
 
-            主題: {topic['title']} - {topic['description']}
-            情境: {scenario}
-            CEFR等級: {cefr_level} ({level_info['name']})
-            詞彙範圍: {level_info['vocabulary_range']}
-            句型複雜度: {level_info['sentence_complexity']}
-            
-            請生成：
-            1. 具體情境描述（中文）
-            2. 對方的問話作為英文問題（讓學生回應）
-            3. 回答指導（中文）
-            4. 3-5個關鍵詞彙提示（英文）
-            
-            回答格式：
-            {{
-                "situation": "情境描述",
-                "question": "對方的問話（英文）",
-                "guidance": "回答指導",
-                "keywords": ["詞彙1", "詞彙2", "詞彙3"],
-                "expected_length": "期望回答長度"
-            }}
-            """
+        **Instructions:**
+        1.  **If conversation history is provided, ask a natural, relevant follow-up question.**
+        2.  **If conversation history is empty, start a new conversation based on the topic and scenario.**
+        3.  The question should be in English and appropriate for the student's CEFR level.
+        4.  Provide a brief, helpful context or situation description in Traditional Chinese.
+        5.  Provide guidance for the student's answer in Traditional Chinese.
+        6.  Provide 3-5 relevant English keywords.
+        7.  Return the output ONLY in the specified JSON format.
+
+        **Context:**
+        -   **Topic:** {topic['title']} - {topic.get('description', 'A custom practice topic.')}
+        -   **Scenario:** {scenario}
+        -   **CEFR Level:** {cefr_level} ({level_info['name']})
+        -   **Conversation History:**
+        {history_string if history_string else "No history yet. This is the first question."}
+
+        **JSON Output Format:**
+        ```json
+        {{
+            "situation": "(A brief situation description in Traditional Chinese)",
+            "question": "(The teacher's question in English)",
+            "guidance": "(Guidance for the student in Traditional Chinese)",
+            "keywords": ["keyword1", "keyword2", "keyword3"],
+            "expected_length": "(Expected answer length, e.g., 1-2 sentences)"
+        }}
+        ```
+        """
         
         response = self.safe_model.generate_content(prompt)
         response_text = response.text if hasattr(response, 'text') else str(response)
@@ -270,8 +262,8 @@ class SpeakingPracticeManager:
                 })
                 print("✅ AI 問題生成成功")
                 return result
-            except json.JSONDecodeError:
-                print("⚠️ JSON 解析失敗，使用模板")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON 解析失敗: {e}，使用模板")
         
         return self._template_generate_question(topic, level_info, scenario, topic_id, cefr_level, scenario_index)
 
@@ -362,7 +354,7 @@ class SpeakingPracticeManager:
             "scenario_index": scenario_index
         }
 
-    def evaluate_response(self, user_response, original_question, cefr_level):
+    def evaluate_response(self, user_response, original_question, cefr_level, history=None):
         """評估用戶回答 - 測試版"""
         print(f"📊 評估回答: {user_response[:50]}...")
         
@@ -371,44 +363,57 @@ class SpeakingPracticeManager:
         # 如果有 API Manager，嘗試使用 AI 評估
         if self.safe_model:
             try:
-                return self._ai_evaluate_response(user_response, original_question, cefr_level, level_info)
+                return self._ai_evaluate_response(user_response, original_question, cefr_level, level_info, history)
             except Exception as e:
                 print(f"⚠️ AI 評估失敗，使用模板: {e}")
         
         # 使用模板評估
         return self._template_evaluate_response(user_response, original_question, cefr_level, level_info)
 
-    def _ai_evaluate_response(self, user_response, original_question, cefr_level, level_info):
+    def _ai_evaluate_response(self, user_response, original_question, cefr_level, level_info, history=None):
         """AI 評估回答"""
-        prompt = f"""
-        你是專業的英語口說評估老師。請評估國小學生的英語回答：
 
-        原始問題: {original_question.get('question', '')}
-        學生回答: {user_response}
-        目標等級: {cefr_level} ({level_info['name']})
-        
-        請提供評估（1-10分）：
-        1. 語法正確性
-        2. 詞彙使用
-        3. 流暢度
-        4. 內容相關性
-        5. 中文回饋
-        6. 英文回饋
-        7. 改進建議
-        
-        回答格式：
+        history_string = ""
+        if history:
+            for message in history:
+                if message['role'] == 'ai':
+                    history_string += f"AI Teacher: {message['content']}\n"
+                else:
+                    history_string += f"Student: {message['content']}\n"
+
+        prompt = f"""You are a professional and strict English speaking evaluation teacher for elementary school students.
+        Your task is to provide a detailed, objective evaluation of the student's response based on the full conversation context.
+
+        **Instructions:**
+        1.  Analyze the student's response in the context of the question asked and the conversation history.
+        2.  Provide specific, constructive feedback on grammar, vocabulary, and fluency.
+        3.  Suggest a better, more natural way to phrase the answer.
+        4.  Provide scores from 1-10 for each category (Grammar, Vocabulary, Fluency, Relevance).
+        5.  The overall score must be the average of the four category scores.
+        6.  Return the output ONLY in the specified JSON format. Do not include any text outside the JSON block.
+
+        **Context:**
+        -   **CEFR Level:** {cefr_level} ({level_info['name']})
+        -   **Conversation History:**
+        {history_string if history_string else "No history."}
+        -   **Current Question:** {original_question.get('question', '')}
+        -   **Student's Answer:** {user_response}
+
+        **JSON Output Format:**
+        ```json
         {{
-            "grammar_score": 分數,
-            "vocabulary_score": 分數,
-            "fluency_score": 分數,
-            "relevance_score": 分數,
-            "overall_score": 總分,
-            "feedback_chinese": "中文回饋",
-            "feedback_english": "English feedback",
-            "improved_answer": "改進後的回答",
-            "strengths": "優點",
-            "areas_for_improvement": "改進建議"
+            "grammar_score": <integer, 1-10>,
+            "vocabulary_score": <integer, 1-10>,
+            "fluency_score": <integer, 1-10>,
+            "relevance_score": <integer, 1-10>,
+            "overall_score": <float, average of the four scores>,
+            "feedback_chinese": "(Detailed feedback in Traditional Chinese, commenting on grammar, vocabulary, and relevance.)",
+            "feedback_english": "(Detailed feedback in English, commenting on grammar, vocabulary, and relevance.)",
+            "strengths": "(Specific strengths of the student's answer, in Traditional Chinese.)",
+            "areas_for_improvement": "(Specific areas for improvement, in Traditional Chinese.)",
+            "improved_answer": "(A better, more natural version of the student's answer in English.)"
         }}
+        ```
         """
         
         response = self.safe_model.generate_content(prompt)
@@ -427,11 +432,17 @@ class SpeakingPracticeManager:
                     result.get('fluency_score', 0),
                     result.get('relevance_score', 0)
                 ]
-                result['overall_score'] = round(sum(scores) / len(scores), 1)
+                # Ensure scores are numbers before averaging
+                valid_scores = [s for s in scores if isinstance(s, (int, float))]
+                if valid_scores:
+                    result['overall_score'] = round(sum(valid_scores) / len(valid_scores), 1)
+                else:
+                    result['overall_score'] = 0
+
                 print("✅ AI 評估成功")
                 return result
-            except json.JSONDecodeError:
-                print("⚠️ JSON 解析失敗，使用模板")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON 解析失敗: {e}，使用模板")
         
         return self._template_evaluate_response(user_response, original_question, cefr_level, level_info)
 

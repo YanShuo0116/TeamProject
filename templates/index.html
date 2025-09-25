@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 <body class="dark-mode">
     <!-- 載入動畫 -->
@@ -51,8 +51,14 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/material_practice">教材練習</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/elementary_english">國小英文教學</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="vocabDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            單字卡
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="vocabDropdown">
+                            <a class="dropdown-item" href="/vocabulary_learning/1200">國小1200基礎單字</a>
+                            <a class="dropdown-item" href="/custom_vocabulary">自訂單字卡</a>
+                        </div>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/new_we">關於我們</a>
@@ -82,13 +88,17 @@
 
     <!-- 首頁部分 -->
     <section id="home" class="home">
-        <div id="particles-js"></div>
+                <div id="particles-js"></div>
+ 
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center">
                     <div class="home_text">
                         <h1 class="team-title animate__animated animate__fadeInDown">智慧ABC-你的英文好幫手</h1>
                         <h4 class="team-subtitle animate__animated animate__fadeInUp">高效學習 AI學習工具 提升教學速率</h4>
+                        <div class="typing-container">
+                            <span class="typing-text"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -96,47 +106,95 @@
     </section>
     
     <!-- 功能展示區塊 -->
-    <section id="features" class="features py-5">
+    <section id="features" class="features-vertical">
         <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <div class="feature">
-                        <i class="fas fa-language fa-3x feature-icon"></i>
-                        <h2>翻譯機</h2>
-                        <p>生成式語言翻譯，語音例句播放，快速學習單字用法。</p>
-                        <a href="/translator" class="btn feature-btn">立即體驗</a>
-                    </div>
+            <h2 class="section-title-center">功能介紹</h2>
+            
+            <!-- Feature 1: 翻譯機 -->
+            <div class="feature-block wow animate__animated animate__fadeInUp">
+                <div class="feature-video">
+                    <video autoplay muted loop playsinline>
+                        <source src="{{ url_for('static', filename='images/翻譯機.mp4') }}" type="video/mp4">
+                    </video>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <div class="feature">
-                        <i class="fas fa-chalkboard-teacher fa-3x feature-icon"></i>
-                        <h2>AI 英文老師</h2>
-                        <p>全方位英文助手，即時回饋，有效提升您的英語能力。</p>
-                        <a href="/ai-teacher" class="btn feature-btn">開始學習</a>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="feature">
-                        <i class="fas fa-chalkboard-teacher fa-3x feature-icon"></i>
-                        <h2>國小英文教學</h2>
-                        <p>提供國小學童完善的學習資源，從基礎到進階。</p>
-                        <div class="d-flex flex-column">
-                            <a href="/vocabulary_learning/1200" class="btn feature-btn mb-2">國小1200基礎單字</a>
-                            <a href="/custom_vocabulary" class="btn feature-btn mb-2">我的自訂單字卡</a>
-                            <a href="/speaking_practice" class="btn feature-btn mb-2">口說練習</a>
-                            <a href="/material_practice" class="btn feature-btn mb-2">教材練習</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="feature">
-                        <i class="fas fa-file-alt fa-3x feature-icon"></i>
-                        <h2>作文助手</h2>
-                        <p>循序漸進，引導式學習，潤飾您的文章，讓文字更具力量。</p>
-                        <a href="/composition" class="btn feature-btn">開始寫作</a>
-                    </div>
+                <div class="feature-description">
+                    <h2>翻譯機</h2>
+                    <p>結合先進的生成式語言模型，提供精準流暢的翻譯。不僅如此，每個單字和例句都配有真人發音，幫助您掌握正確語調，並透過豐富的例句深入了解單字在不同情境下的實際應用。</p>
+                    <a href="/translator" class="btn">立即體驗</a>
                 </div>
             </div>
+
+            <!-- Feature 2: AI英文老師 -->
+            <div class="feature-block wow animate__animated animate__fadeInUp">
+                <div class="feature-video">
+                    <video autoplay muted loop playsinline>
+                        <source src="{{ url_for('static', filename='images/AI英文老師.mp4') }}" type="video/mp4">
+                    </video>
+                </div>
+                <div class="feature-description">
+                    <h2>AI英文老師</h2>
+                    <p>您的隨身英文家教，提供全方位的英語學習輔導。無論是文法糾錯、單字釋義，還是文章理解，AI老師都能即時給予回饋與指導，有效提升您的綜合英語能力。</p>
+                    <a href="/ai-teacher" class="btn">開始學習</a>
+                </div>
+            </div>
+
+            <!-- Feature 3: 單字卡 -->
+            <div class="feature-block wow animate__animated animate__fadeInUp">
+                <div class="feature-video">
+                    <video autoplay muted loop playsinline>
+                        <source src="{{ url_for('static', filename='images/單字卡.mp4') }}" type="video/mp4">
+                    </video>
+                </div>
+                <div class="feature-description">
+                    <h2>單字卡</h2>
+                    <p>系統化、高效率的單字記憶工具。我們提供教育部指定的國小1200基礎單字庫，並讓您能創建自己的單字卡，隨時隨地進行學習與測驗，鞏固您的詞彙基礎。</p>
+                    <a href="/vocabulary_learning/1200" class="btn">國小1200單字</a>
+                    <a href="/custom_vocabulary" class="btn" style="margin-left: 10px;">自訂單字卡</a>
+                </div>
+            </div>
+
+            <!-- Feature 4: 口說練習 -->
+            <div class="feature-block wow animate__animated animate__fadeInUp">
+                <div class="feature-video">
+                    <video autoplay muted loop playsinline>
+                        <source src="{{ url_for('static', filename='images/口說練習.mp4') }}" type="video/mp4">
+                    </video>
+                </div>
+                <div class="feature-description">
+                    <h2>口說練習</h2>
+                    <p>模擬真實對話情境，讓您在互動中自然而然地開口說英文。AI將根據您的發音、流暢度、文法給予專業評分與建議，幫助您建立口說自信，告別啞巴英語。</p>
+                    <a href="/speaking_practice" class="btn">練習口說</a>
+                </div>
+            </div>
+
+            <!-- Feature 5: 教材練習 -->
+            <div class="feature-block wow animate__animated animate__fadeInUp">
+                <div class="feature-video">
+                    <video autoplay muted loop playsinline>
+                        <source src="{{ url_for('static', filename='images/教材練習.mp4') }}" type="video/mp4">
+                    </video>
+                </div>
+                <div class="feature-description">
+                    <h2>教材練習</h2>
+                    <p>將您的課堂教材轉化為互動式練習。只需上傳教材圖片或文字，AI就能圍繞內容生成問答，幫助您深化理解、鞏固記憶，讓學習不再是被動吸收。</p>
+                    <a href="/material_practice" class="btn">上傳教材</a>
+                </div>
+            </div>
+
+            <!-- Feature 6: 作文助手 -->
+            <div class="feature-block wow animate__animated animate__fadeInUp">
+                <div class="feature-video">
+                    <video autoplay muted loop playsinline>
+                        <source src="{{ url_for('static', filename='images/作文助手.mp4') }}" type="video/mp4">
+                    </video>
+                </div>
+                <div class="feature-description">
+                    <h2>作文助手</h2>
+                    <p>引導式寫作工具，從主題發想、關鍵字設定到句型變化，循序漸進地幫助您完成一篇結構完整、內容豐富的文章。AI還能對您的草稿進行潤飾與評分，提升寫作水平。</p>
+                    <a href="/composition" class="btn">開始寫作</a>
+                </div>
+            </div>
+
         </div>
     </section>
 
@@ -146,5 +204,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
     <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
 </body>
 </html>

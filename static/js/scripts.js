@@ -40,6 +40,11 @@ setInterval(createStar, 400);
 
 // 等待 DOM 完全加載
 document.addEventListener('DOMContentLoaded', function() {
+    // 初始化 WOW.js
+    if (typeof WOW !== 'undefined') {
+        new WOW().init();
+    }
+
     // 初始化粒子效果
     initParticles();
     

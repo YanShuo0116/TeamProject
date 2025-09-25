@@ -37,6 +37,15 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="vocabDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-book"></i> 單字卡
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="vocabDropdown">
+                            <a class="dropdown-item" href="/vocabulary_learning/1200">國小1200基礎單字</a>
+                            <a class="dropdown-item" href="/custom_vocabulary">自訂單字卡</a>
+                        </div>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
                     </li>
@@ -53,8 +62,32 @@
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
-                    <h1 class="page-title">AI 英文老師</h1>
+                    <div class="d-flex justify-content-center align-items-center mb-3">
+                        <h1 class="page-title mb-0">AI 英文老師</h1>
+                        <a href="/ai-teacher/clear" class="btn btn-danger btn-sm ms-3">
+                            <i class="fas fa-trash"></i> 清除對話
+                        </a>
+                    </div>
                     <div class="teacher-container">
+                        <div class="chat-history" id="chatHistory">
+                            {% for message in chat_history %}
+                            <div class="chat-message {{ message.role }}-message">
+                                <div class="message-bubble">
+                                    {% if message.role == 'user' %}
+                                    <i class="fas fa-user"></i>
+                                    {% else %}
+                                    <i class="fas fa-robot"></i>
+                                    {% endif %}
+                                    <p>{{ message.content }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <div class="loading-spinner" id="loading" style="display: none;">
+                                <div class="spinner"></div>
+                                <p>正在思考中...</p>
+                            </div>
+                        </div>
+
                         <form id="teacherForm" method="POST" action="/ai-teacher">
                             <div class="input-group">
                                 <input type="text" name="prompt_Q" class="form-control" placeholder="請輸入與英文相關的問題" required>
@@ -66,20 +99,6 @@
                                 </div>
                             </div>
                         </form>
-
-                        <div class="loading-spinner" id="loading" style="display: none;">
-                            <div class="spinner"></div>
-                            <p>正在思考中...</p>
-                        </div>
-
-                        {% if teacher_answer %}
-                        <div class="result-container" style="opacity: 1;">
-                            <div class="result-card">
-                                <h3><i class="fas fa-robot"></i> AI 老師的回答</h3>
-                                <div class="answer">{{ teacher_answer }}</div>
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>

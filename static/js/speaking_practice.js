@@ -51,11 +51,16 @@ class SpeakingPractice {
 
         // 會話控制
         document.getElementById('nextQuestionBtn').addEventListener('click', () => {
-            this.getNextQuestion();
+            this.showTopicSelection();
         });
 
         document.getElementById('endSessionBtn').addEventListener('click', () => {
             this.endSession();
+        });
+
+        // Custom Topic
+        document.getElementById('startCustomTopicBtn').addEventListener('click', () => {
+            this.startCustomPractice();
         });
     }
 
@@ -255,6 +260,60 @@ class SpeakingPractice {
         }
     }
 
+    async startCustomPractice() {
+        const topicTitle = document.getElementById('customTopicInput').value.trim();
+        if (!topicTitle) {
+            alert('請輸入自訂主題');
+            return;
+        }
+
+        if (!this.currentLevel) {
+            alert('請先選擇CEFR難度等級');
+            return;
+        }
+
+        this.currentTopicId = 'custom';
+        
+        this.showLoading(true);
+        
+        try {
+            const response = await fetch('/api/speaking/start_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    topic_id: 'custom',
+                    custom_topic: topicTitle,
+                    cefr_level: this.currentLevel
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.currentSessionId = data.session_id;
+                console.log(`開始自訂練習會話: ${data.session_id}, 主題: ${topicTitle}, 難度: ${this.currentLevel}`);
+                
+                this.showChatInterface(topicTitle);
+                
+                this.generateFirstQuestion();
+                
+            } else if (data.redirect) {
+                alert(data.message);
+                window.location.href = data.redirect;
+            } else {
+                throw new Error(data.error || '開始會話失敗');
+            }
+            
+        } catch (error) {
+            console.error('開始自訂練習失敗:', error);
+            alert(`開始自訂練習失敗: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
     showChatInterface(topicTitle) {
         // 隱藏主題選擇，顯示聊天室
         document.getElementById('topicSelectionSection').style.display = 'none';
@@ -266,6 +325,10 @@ class SpeakingPractice {
         
         // 清空聊天記錄
         document.getElementById('chatMessages').innerHTML = '';
+
+        // 顯示控制按鈕
+        document.getElementById('nextQuestionBtn').style.display = 'inline-block';
+        document.getElementById('endSessionBtn').style.display = 'inline-block';
     }
 
     showTopicSelection() {
@@ -331,9 +394,8 @@ class SpeakingPractice {
                 const questionText = questionData.question;
                 const keywords = questionData.keywords ? questionData.keywords.join(', ') : '';
                 const guidance = questionData.guidance || '';
-                
-                // 生成中文翻譯（將英文問題翻譯成中文）
-                let chineseTranslation = this.translateQuestionToChinese(questionText);
+                const chineseTranslation = questionData.translation; // Use translation from backend
+
                 let fullGuidance = guidance;
                 if (keywords) {
                     fullGuidance += `\n\n💡 關鍵詞提示: ${keywords}`;
@@ -370,17 +432,20 @@ class SpeakingPractice {
             1: {
                 situation: "你在學校遇到新同學，想要自我介紹。",
                 question: "Please introduce yourself. Tell me your name and what you like to do.",
-                guidance: "記得說出你的名字、年級和興趣愛好。"
+                guidance: "記得說出你的名字、年級和興趣愛好。",
+                translation: "請自我介紹。告訴我你的名字和你喜歡做什麼。"
             },
             2: {
                 situation: "你在餐廳想要點餐。",
                 question: "You are at a restaurant. What would you like to order?",
-                guidance: "可以說 'I would like...' 或 'Can I have...'。"
+                guidance: "可以說 'I would like...' 或 'Can I have...'。",
+                translation: "你在餐廳。你想要點什麼？"
             },
             3: {
                 situation: "你在街上迷路了，需要問路。",
                 question: "You are lost. How do you ask for directions to the library?",
-                guidance: "可以說 'Excuse me, how can I get to...' 或 'Where is...'。"
+                guidance: "可以說 'Excuse me, how can I get to...' 或 'Where is...'。",
+                translation: "你迷路了。你如何問圖書館的方向？"
             }
         };
         
@@ -390,8 +455,7 @@ class SpeakingPractice {
         this.addMessage('ai', `情境：${questionData.situation}`);
         
         // 顯示問題
-        let chineseTranslation = this.translateQuestionToChinese(questionData.question);
-        this.addMessage('ai', chineseTranslation, questionData.question, questionData.guidance);
+        this.addMessage('ai', questionData.translation, questionData.question, questionData);
         
         this.playAudio(questionData.question);
     }
@@ -432,7 +496,7 @@ class SpeakingPractice {
             if (englishText && !chineseText) {
                 contentHtml = `<div class="english-text">${englishText}</div>`;
                 buttonsHtml = `
-                    <button class="btn btn-sm btn-outline-primary replay-btn" onclick="speakingPractice.playAudio('${englishText.replace(/'/g, "\\'")}')">
+                    <button class="btn btn-sm btn-outline-primary replay-btn" onclick="speakingPractice.playAudio('${englishText.replace(/'/g, "\'")}')">
                         <i class="fas fa-volume-up"></i> 重播
                     </button>
                 `;
@@ -457,7 +521,7 @@ class SpeakingPractice {
                         ${guidance ? `<button class="btn btn-sm toggle-btn guidance-btn" onclick="speakingPractice.toggleGuidance(this)">
                             <i class="fas fa-lightbulb"></i> 建議
                         </button>` : ''}
-                        <button class="btn btn-sm btn-outline-primary replay-btn" onclick="speakingPractice.playAudio('${englishText.replace(/'/g, "\\'")}')">
+                        <button class="btn btn-sm btn-outline-primary replay-btn" onclick="speakingPractice.playAudio('${englishText.replace(/'/g, "\'")}')">
                             <i class="fas fa-volume-up"></i> 重播
                         </button>
                     </div>
@@ -851,24 +915,24 @@ class SpeakingPractice {
         
         this.addMessage('ai', fullMessage, englishFeedback);
         
+        const scheduleNext = () => {
+            setTimeout(() => this.generateQuestion(), 4000); // 4秒後自動提問
+        };
+
         // 如果有改進後的回答範例
         if (evaluation.improved_answer && evaluation.improved_answer !== evaluation.user_response) {
             setTimeout(() => {
                 this.addMessage('ai', '📝 這是一個更好的回答範例：', evaluation.improved_answer);
                 this.playAudio(evaluation.improved_answer);
+                scheduleNext();
             }, 1500);
         } else {
             // 播放英文回饋
             setTimeout(() => {
                 this.playAudio(englishFeedback);
+                scheduleNext();
             }, 500);
         }
-        
-        // 顯示控制按鈕
-        setTimeout(() => {
-            document.getElementById('nextQuestionBtn').style.display = 'inline-block';
-            document.getElementById('endSessionBtn').style.display = 'inline-block';
-        }, 3000);
     }
 
     generateMockFeedback() {
@@ -1182,90 +1246,7 @@ class SpeakingPractice {
         this.currentExchangeId = null;
     }
 
-    // 新增功能：將英文問題翻譯成中文
-    translateQuestionToChinese(englishQuestion) {
-        // 擴展的翻譯對照表
-        const translations = {
-            // 自我介紹
-            "Hi! What's your name?": "嗨！你叫什麼名字？",
-            "Hello! Can you tell me about yourself and your hobbies?": "你好！你可以告訴我關於你自己和你的興趣嗎？",
-            "Nice to meet you! Could you introduce yourself and share your future plans?": "很高興認識你！你可以自我介紹並分享你的未來計畫嗎？",
-            "Please introduce yourself. Tell me your name and what you like to do.": "請自我介紹。告訴我你的名字和你喜歡做什麼。",
-            
-            // 點餐
-            "Hello! What would you like to order today?": "你好！你今天想要點什麼？",
-            "Good afternoon! Are you ready to order?": "午安！你準備好點餐了嗎？",
-            "Welcome! What can I recommend for you today?": "歡迎！我今天可以為你推薦什麼？",
-            "You are at a restaurant. What would you like to order?": "你在餐廳。你想要點什麼？",
-            
-            // 服飾店購物
-            "Can I help you?": "我可以幫助你嗎？",
-            "Do you need any help?": "你需要任何幫助嗎？",
-            "Do you need any help finding something?": "你需要幫忙找什麼東西嗎？",
-            "Are you looking for anything specific today?": "你今天在找什麼特別的東西嗎？",
-            "What size are you looking for?": "你在找什麼尺寸？",
-            "Excuse me, do you have this t-shirt in a size medium?": "不好意思，請問這件T-shirt有中號的嗎？",
-            
-            // 問路
-            "You are lost. How do you ask for directions to the library?": "你迷路了。你如何問圖書館的方向？",
-            "Excuse me, where is the library?": "不好意思，請問圖書館在哪裡？",
-            "How can I get to the subway station?": "我要怎麼去地鐵站？",
-            
-            // 預約
-            "When would you like to make an appointment?": "你想要什麼時候預約？",
-            "What time works best for you?": "什麼時間對你最方便？",
-            
-            // 看醫生
-            "What seems to be the problem?": "有什麼問題嗎？",
-            "How are you feeling today?": "你今天感覺如何？",
-            
-            // 日常作息
-            "What time do you usually wake up?": "你通常幾點起床？",
-            "Tell me about your daily routine.": "告訴我你的日常作息。",
-            
-            // 尋求幫助
-            "What do you need help with?": "你需要什麼幫助？",
-            "How can I assist you?": "我可以如何協助你？",
-            
-            // 邀請
-            "Would you like to join us?": "你想要加入我們嗎？",
-            "Are you free this weekend?": "你這個週末有空嗎？",
-            
-            // 興趣愛好
-            "What do you like to do in your free time?": "你空閒時間喜歡做什麼？",
-            "Tell me about your hobbies.": "告訴我你的興趣愛好。",
-            
-            // 天氣
-            "How's the weather today?": "今天天氣如何？",
-            "What do you think about this weather?": "你覺得這個天氣怎麼樣？"
-        };
-        
-        // 如果有直接翻譯就使用，否則嘗試智能匹配
-        if (translations[englishQuestion]) {
-            return translations[englishQuestion];
-        }
-        
-        // 智能匹配關鍵詞
-        const keywordMatches = {
-            "help": "我可以幫助你嗎？",
-            "name": "你叫什麼名字？",
-            "order": "你想要點什麼？",
-            "size": "你在找什麼尺寸？",
-            "time": "什麼時間？",
-            "where": "在哪裡？",
-            "how": "怎麼樣？",
-            "what": "什麼？"
-        };
-        
-        for (const [keyword, translation] of Object.entries(keywordMatches)) {
-            if (englishQuestion.toLowerCase().includes(keyword)) {
-                return translation;
-            }
-        }
-        
-        // 最後的備用翻譯
-        return "請用英文回答這個問題。";
-    }
+    
 }
 
 // 初始化

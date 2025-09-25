@@ -29,6 +29,21 @@ def ai_translate_english_to_chinese(english_word):
         print(f"Error translating word '{english_word}' with AI: {e}")
         return "AI翻譯失敗"
 
+def ai_translate_text(text, target_language="繁體中文"):
+    """使用 AI 翻譯任意文字"""
+    try:
+        prompt = f"""請將以下文字翻譯成{target_language}。請只輸出翻譯結果，不要包含任何原始文字、解釋或標點符號。
+        要翻譯的文字：
+        ---
+        {text}
+        ---
+        """
+        translated_text = model.generate_content(prompt).text.strip()
+        return translated_text
+    except Exception as e:
+        print(f"Error translating text '{text}' with AI: {e}")
+        return "AI翻譯失敗"
+
 #langchain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -298,21 +313,28 @@ def play_word_audio():
         if audio_filepath and os.path.exists(audio_filepath):
             return send_file(audio_filepath)
     return "音檔不存在", 404
-def anser_Q(prompt_Q):
+def anser_Q(prompt_Q, chat_history=None):
     try:
-        # 生成回答
-        answerQ_prompt = f"""你是專業英文老師，請使用反體中文夾雜英文簡短回答 '{prompt_Q}' 的這個問題 (你不能輸出＊字符號)。如果問題與英文不相關則輸出「請提出英文相關問題」。
-        以下為範例:
-        輸入:
-        有用到Arriving的片語嗎？
-        你輸出:
-        Q:有用到Arriving的片語嗎？
-        A:Arriving at是一個常見的片語，通常用來表示到達某個地點或目的地。例如："I'm arriving at the airport at 3 PM."
-        """
-        answerQ_response = model.generate_content(answerQ_prompt).text
+        full_prompt_parts = []
+        if chat_history:
+            for chat_item in chat_history:
+                if chat_item['role'] == 'user':
+                    full_prompt_parts.append(f"Q: {chat_item['content']}")
+                elif chat_item['role'] == 'ai':
+                    full_prompt_parts.append(f"A: {chat_item['content']}")
+        
+        full_prompt_parts.append(f"Q: {prompt_Q}")
+        
+        # System message to set the AI's persona
+        system_message = "你是專業英文老師，請使用繁體中文夾雜英文簡短回答問題 (你不能輸出＊字符號)。如果問題與英文不相關則輸出「請提出英文相關問題」。"
+        
+        # Combine system message and chat history for the AI
+        final_prompt = system_message + "\n" + "\n".join(full_prompt_parts) + "\n" + "A:"
+
+        answerQ_response = model.generate_content(final_prompt).text
         return answerQ_response
     except Exception:
-        print(f"Error processing question '{prompt_Q}': {traceback.format_exc()}")
+        print(f"Error processing question '{prompt_Q}' with history: {traceback.format_exc()}")
         return "抱歉，回答失敗，請稍後再試"
 
 @app.route('/', methods=["GET", "POST"])
@@ -539,12 +561,33 @@ def auto_cleanup_translations():
 
 @app.route("/ai-teacher", methods=["GET", "POST"])
 def ai_teacher():
-    teacher_answer = None
+    # Initialize chat history in session if it doesn't exist
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+
     if request.method == "POST":
         prompt_Q = request.form.get("prompt_Q", "").strip()
         if prompt_Q:
-            teacher_answer = anser_Q(prompt_Q)
-    return render_template('teach.html', teacher_answer=teacher_answer)
+            # Add user's question to history
+            session['chat_history'].append({'role': 'user', 'content': prompt_Q})
+            session.modified = True # Mark session as modified
+
+            # Get AI's answer, passing the full chat history for context
+            teacher_answer = anser_Q(prompt_Q, session['chat_history'])
+            
+            # Add AI's answer to history
+            session['chat_history'].append({'role': 'ai', 'content': teacher_answer})
+            session.modified = True # Mark session as modified
+
+    return render_template('teach.html', chat_history=session['chat_history'])
+
+@app.route('/ai-teacher/clear')
+@login_required
+def clear_teacher_chat():
+    if 'chat_history' in session:
+        session.pop('chat_history', None)
+        flash('對話紀錄已清除', 'success')
+    return redirect(url_for('ai_teacher'))
 
 @app.route("/api/themes_and_lessons", methods=["GET"])
 def get_themes_and_lessons():
@@ -729,24 +772,27 @@ def start_speaking_session():
         data = request.get_json()
         topic_id = data.get('topic_id')
         cefr_level = data.get('cefr_level', 'A1')
-        
+        custom_topic = data.get('custom_topic')
+
         if not topic_id:
             return jsonify({'success': False, 'error': '請選擇練習主題'}), 400
         
-        from speaking_practice import SpeakingPracticeManager
-        # 已整合到 models.py
-        
-        manager = SpeakingPracticeManager()
-        topics = manager.get_topics_list()
-        
-        if topic_id not in topics:
-            return jsonify({'success': False, 'error': '無效的主題ID'}), 400
-        
+        topic_title = ""
+        if topic_id == 'custom' and custom_topic:
+            topic_title = custom_topic
+        else:
+            from speaking_practice import SpeakingPracticeManager
+            manager = SpeakingPracticeManager()
+            topics = manager.get_topics_list()
+            if topic_id not in topics:
+                return jsonify({'success': False, 'error': '無效的主題ID'}), 400
+            topic_title = topics[topic_id]['title']
+
         # 創建新的練習會話
         session_record = SpeakingSession(
             user_id=current_user.id,
             topic_id=topic_id,
-            topic_title=topics[topic_id]['title'],
+            topic_title=topic_title,
             cefr_level=cefr_level,
             status='active'
         )
@@ -756,7 +802,7 @@ def start_speaking_session():
         return jsonify({
             'success': True,
             'session_id': session_record.id,
-            'topic_title': topics[topic_id]['title'],
+            'topic_title': topic_title,
             'cefr_level': cefr_level,
             'message': '練習會話已開始'
         })
@@ -788,7 +834,6 @@ def evaluate_speaking_response():
             return jsonify({'success': False, 'error': '缺少必要參數'}), 400
         
         # 驗證會話權限
-        # 已整合到 models.py
         session_record = SpeakingSession.query.filter_by(
             id=session_id,
             user_id=current_user.id,
@@ -802,7 +847,23 @@ def evaluate_speaking_response():
         exchange = SpeakingExchange.query.get(exchange_id)
         if not exchange or exchange.session_id != int(session_id):
             return jsonify({'success': False, 'error': '無效的交換記錄'}), 404
+
+        # 獲取對話歷史
+        history_exchanges = SpeakingExchange.query.filter(
+            SpeakingExchange.session_id == session_id,
+            SpeakingExchange.exchange_order < exchange.exchange_order
+        ).order_by(SpeakingExchange.exchange_order).all()
         
+        chat_history = []
+        for ex in history_exchanges:
+            if ex.ai_question:
+                chat_history.append({"role": "ai", "content": ex.ai_question})
+            if ex.user_response_text:
+                chat_history.append({"role": "user", "content": ex.user_response_text})
+
+        # 將當前問題添加到歷史記錄中以供上下文參考
+        chat_history.append({"role": "ai", "content": exchange.ai_question})
+
         # 準備評估所需的信息
         original_question = {
             'question': exchange.ai_question,
@@ -818,7 +879,8 @@ def evaluate_speaking_response():
         evaluation_result = manager.evaluate_response(
             user_response,
             original_question,
-            session_record.cefr_level
+            session_record.cefr_level,
+            history=chat_history
         )
         
         if 'error' in evaluation_result:
@@ -1152,7 +1214,6 @@ def generate_speaking_question():
             return jsonify({'success': False, 'error': '缺少會話ID'}), 400
         
         # 驗證會話是否屬於當前用戶
-        # 已整合到 models.py
         session_record = SpeakingSession.query.filter_by(
             id=session_id,
             user_id=current_user.id,
@@ -1161,7 +1222,16 @@ def generate_speaking_question():
         
         if not session_record:
             return jsonify({'success': False, 'error': '無效的會話ID'}), 404
-        
+
+        # 獲取對話歷史
+        history_exchanges = SpeakingExchange.query.filter_by(session_id=session_id).order_by(SpeakingExchange.exchange_order).all()
+        chat_history = []
+        for ex in history_exchanges:
+            if ex.ai_question:
+                chat_history.append({"role": "ai", "content": ex.ai_question})
+            if ex.user_response_text:
+                chat_history.append({"role": "user", "content": ex.user_response_text})
+
         # 生成問題
         from speaking_practice import SpeakingPracticeManager
         manager = SpeakingPracticeManager()
@@ -1169,7 +1239,8 @@ def generate_speaking_question():
         question_data = manager.generate_question(
             session_record.topic_id,
             session_record.cefr_level,
-            scenario_index
+            scenario_index,
+            history=chat_history
         )
         
         if 'error' in question_data:
@@ -1177,9 +1248,15 @@ def generate_speaking_question():
                 'success': False,
                 'error': question_data['error']
             }), 500
+
+        # AI翻譯問題
+        question_text = question_data.get('question', '')
+        if question_text:
+            question_data['translation'] = ai_translate_text(question_text)
+        else:
+            question_data['translation'] = ''
         
         # 記錄問題到資料庫
-        # 已整合到 models.py
         import json as json_module
         exchange_count = SpeakingExchange.query.filter_by(session_id=session_id).count()
         
