@@ -1,0 +1,457 @@
+/* material_practice.css */
+
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --dark-bg: #1a1a1a;
+    --light-bg: #ffffff;
+    --text-dark: #333333;
+    --text-light: #ffffff;
+    --card-bg-light: #ffffff;
+    --card-bg-dark: #1e1e1e;
+    --border-light: #dee2e6;
+    --border-dark: #495057;
+    --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-dark: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --transition-speed: 0.3s;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    background-color: var(--light-bg);
+    color: var(--text-dark);
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+body.dark-mode {
+    background-color: var(--dark-bg);
+    color: var(--text-light);
+}
+
+.main-content {
+    padding-top: 100px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    transition: background var(--transition-speed) ease;
+}
+
+body.dark-mode .main-content {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+.practice-header {
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    color: var(--text-light);
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.page-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.2rem;
+    margin-bottom: 0;
+}
+
+/* 上傳區域樣式 */
+.upload-section {
+    margin-bottom: 2rem;
+}
+
+.upload-card {
+    background-color: var(--card-bg-light);
+    border-radius: 15px;
+    box-shadow: var(--shadow-light);
+    overflow: hidden;
+    transition: all var(--transition-speed) ease;
+}
+
+body.dark-mode .upload-card {
+    background-color: var(--card-bg-dark);
+    box-shadow: var(--shadow-dark);
+}
+
+.upload-header {
+    background: linear-gradient(45deg, var(--primary-color), var(--info-color));
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.upload-header h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+}
+
+.upload-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.upload-area {
+    padding: 2rem;
+    border: 2px dashed var(--border-light);
+    margin: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    transition: all var(--transition-speed) ease;
+    cursor: pointer;
+}
+
+body.dark-mode .upload-area {
+    border-color: var(--border-dark);
+}
+
+.upload-area:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.upload-area.dragover {
+    border-color: var(--success-color);
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--secondary-color);
+}
+
+.upload-status {
+    padding: 1rem 1.5rem;
+    background-color: rgba(40, 167, 69, 0.1);
+    border-top: 1px solid var(--border-light);
+}
+
+body.dark-mode .upload-status {
+    border-color: var(--border-dark);
+}
+
+.status-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.status-content i {
+    margin-right: 0.5rem;
+}
+
+/* 聊天區域樣式 */
+.chat-section {
+    margin-bottom: 2rem;
+}
+
+.chat-container {
+    background-color: var(--card-bg-light);
+    border-radius: 15px;
+    box-shadow: var(--shadow-light);
+    overflow: hidden;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+body.dark-mode .chat-container {
+    background-color: var(--card-bg-dark);
+    box-shadow: var(--shadow-dark);
+}
+
+.chat-header {
+    background: linear-gradient(45deg, var(--success-color), var(--info-color));
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.status-indicator {
+    font-size: 0.9rem;
+}
+
+.status-indicator i {
+    margin-right: 0.3rem;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #f8f9fa;
+}
+
+body.dark-mode .chat-messages {
+    background-color: #2c2c2c;
+}
+
+.message {
+    display: flex;
+    margin-bottom: 1.5rem;
+    animation: fadeInUp 0.3s ease;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.bot-message .message-avatar {
+    background: linear-gradient(45deg, var(--primary-color), var(--info-color));
+    color: white;
+}
+
+.user-message {
+    flex-direction: row-reverse;
+}
+
+.user-message .message-avatar {
+    background: linear-gradient(45deg, var(--success-color), var(--warning-color));
+    color: white;
+    margin-right: 0;
+    margin-left: 1rem;
+}
+
+.message-content {
+    flex: 1;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+body.dark-mode .message-content {
+    background-color: var(--card-bg-dark);
+    color: var(--text-light);
+}
+
+.user-message .message-content {
+    background: linear-gradient(45deg, var(--primary-color), var(--info-color));
+    color: white;
+}
+
+.message-content p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.message-time {
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+    margin-top: 0.5rem;
+    text-align: right;
+}
+
+.user-message .message-time {
+    text-align: left;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.chat-input-container {
+    padding: 1rem;
+    border-top: 1px solid var(--border-light);
+    background-color: white;
+}
+
+body.dark-mode .chat-input-container {
+    border-color: var(--border-dark);
+    background-color: var(--card-bg-dark);
+}
+
+.chat-input {
+    border-radius: 25px;
+    border: 1px solid var(--border-light);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+}
+
+body.dark-mode .chat-input {
+    background-color: var(--card-bg-dark);
+    border-color: var(--border-dark);
+    color: var(--text-light);
+}
+
+.chat-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.send-btn {
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: linear-gradient(45deg, var(--primary-color), var(--info-color));
+    transition: all var(--transition-speed) ease;
+}
+
+.send-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 建議問題區域 */
+.suggestions-section {
+    background-color: var(--card-bg-light);
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-light);
+}
+
+body.dark-mode .suggestions-section {
+    background-color: var(--card-bg-dark);
+    box-shadow: var(--shadow-dark);
+}
+
+.suggestions-section h4 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.suggestions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.suggestion-btn {
+    background-color: transparent;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.suggestion-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* 載入指示器 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: white;
+}
+
+.loading-text {
+    margin-top: 1rem;
+    font-size: 1.1rem;
+}
+
+/* 動畫效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .page-title {
+        font-size: 2rem;
+    }
+    
+    .page-subtitle {
+        font-size: 1rem;
+    }
+    
+    .chat-container {
+        height: 500px;
+    }
+    
+    .upload-area {
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+    
+    .suggestions-container {
+        flex-direction: column;
+    }
+    
+    .suggestion-btn {
+        width: 100%;
+        text-align: left;
+    }
+}
+
+/* 滾動條樣式 */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+body.dark-mode .chat-messages::-webkit-scrollbar-track {
+    background: #3a3a3a;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}

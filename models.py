@@ -146,8 +146,17 @@ class SpeakingSession(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
     
     # 關聯
-    user = db.relationship('User', backref=db.backref('speaking_sessions', lazy=True))
-    exchanges = db.relationship('SpeakingExchange', backref='session', lazy=True, cascade='all, delete-orphan')
+    user = db.relationship('User', backref=db.backref('speaking_practices', lazy=True))
+
+
+class CustomVocabulary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    english_word = db.Column(db.String(150), nullable=False)
+    chinese_translation = db.Column(db.String(300), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    user = db.relationship('User', backref=db.backref('custom_vocabularies', lazy=True))
 
 class SpeakingExchange(db.Model):
     """口說練習對話交換記錄"""

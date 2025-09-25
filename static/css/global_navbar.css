@@ -54,7 +54,7 @@
 }
 
 .navbar-brand::before {
-    content: '🚀';
+    content: '';
     font-size: 1.2rem;
     animation: float 3s ease-in-out infinite;
 }

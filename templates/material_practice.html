@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教材練習 - 智慧ABC</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link href="https://fonts.googleapis.com/css?family=Knewave" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/material_practice.css') }}">
+</head>
+<body class="dark-mode">
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="智慧ABC" style="height: 30px; margin-right: 8px;">
+                智慧ABC
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/translator">翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher">AI 英文老師</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/composition">作文助手</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/material_practice">教材練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/elementary_english">國小英文教學</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/new_we">關於我們</a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            你好, {{ current_user.username }}
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">登出</a>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">登入</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.register') }}">註冊</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="main-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="practice-header text-center mb-4">
+                        <h1 class="page-title animate__animated animate__fadeInDown">
+                            <i class="fas fa-brain"></i> 教材練習 AI 助手
+                        </h1>
+                        <p class="page-subtitle animate__animated animate__fadeInUp">
+                            上傳教材檔案，與 AI 進行互動問答，提升學習效果
+                        </p>
+                    </div>
+
+                    <!-- 檔案上傳區域 -->
+                    <div class="upload-section mb-4">
+                        <div class="upload-card">
+                            <div class="upload-header">
+                                <h3><i class="fas fa-upload"></i> 上傳教材檔案</h3>
+                                <p>支援 PDF、TXT、CSV 格式檔案</p>
+                            </div>
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-content">
+                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                    <p class="upload-text">拖拽檔案到此處或點擊選擇檔案</p>
+                                    <input type="file" id="fileInput" accept=".pdf,.txt,.csv" style="display: none;">
+                                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                        <i class="fas fa-folder-open"></i> 選擇檔案
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="upload-status" id="uploadStatus" style="display: none;">
+                                <div class="status-content">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    <span id="uploadedFileName"></span>
+                                    <button class="btn btn-sm btn-outline-danger" id="removeFileBtn">
+                                        <i class="fas fa-times"></i> 移除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 聊天區域 -->
+                    <div class="chat-section">
+                        <div class="chat-container">
+                            <div class="chat-header">
+                                <h3><i class="fas fa-comments"></i> AI 問答助手</h3>
+                                <div class="chat-status">
+                                    <span class="status-indicator" id="chatStatus">
+                                        <i class="fas fa-circle text-success"></i> 準備就緒
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="message bot-message">
+                                    <div class="message-avatar">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="message-content">
+                                        <p>您好！我是您的 AI 學習助手。請先上傳教材檔案，然後您可以針對教材內容提出任何問題，我會根據教材為您提供詳細解答。</p>
+                                    </div>
+                                    <div class="message-time">剛剛</div>
+                                </div>
+                            </div>
+                            
+                            <div class="chat-input-container">
+                                <div class="input-group">
+                                    <input type="text" class="form-control chat-input" id="messageInput" 
+                                           placeholder="請輸入您的問題..." disabled>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary send-btn" id="sendBtn" disabled>
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 快速問題建議 -->
+                    <div class="suggestions-section" id="suggestionsSection" style="display: none;">
+                        <h4><i class="fas fa-lightbulb"></i> 建議問題</h4>
+                        <div class="suggestions-container" id="suggestionsContainer">
+                            <!-- 建議問題將由 JavaScript 動態生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入指示器 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">載入中...</span>
+            </div>
+            <p class="loading-text">AI 正在思考中...</p>
+        </div>
+    </div>
+
+    <!-- JS 檔案 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/material_practice.js') }}"></script>
+</body>
+</html>

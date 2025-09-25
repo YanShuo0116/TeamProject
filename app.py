@@ -4,6 +4,7 @@ from flask_login import LoginManager, current_user, login_required
 from pyngrok import ngrok
 import traceback
 import time
+import json
 # === 輕量化多 API 管理器整合 ===
 from api_manager import SafeGenerativeModel, get_gemini_manager
 from gtts import gTTS
@@ -16,7 +17,17 @@ import random
 from datetime import datetime
 from auth import auth_bp
 from admin import admin_bp
-from models import User, VocabularyProgress, LessonProgress, Vocabulary, LearningRecord, QuizAttempt, QuizQuestion, TranslationRecord, Composition, SpeakingSession, SpeakingExchange, SpeakingProgress
+from models import User, VocabularyProgress, LessonProgress, Vocabulary, LearningRecord, QuizAttempt, QuizQuestion, TranslationRecord, Composition, SpeakingSession, SpeakingExchange, SpeakingProgress, CustomVocabulary
+
+def ai_translate_english_to_chinese(english_word):
+    """使用 AI 翻譯英文單字為中文"""
+    try:
+        translation_prompt = f"""請將單字 '{english_word}' 翻譯成繁體中文。只輸出中文翻譯，不要包含任何額外文字、解釋或標點符號。"""
+        chinese_translation = model.generate_content(translation_prompt).text.strip()
+        return chinese_translation
+    except Exception as e:
+        print(f"Error translating word '{english_word}' with AI: {e}")
+        return "AI翻譯失敗"
 
 #langchain
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -569,6 +580,57 @@ def vocabulary_learning(category):
     # 這裡可以根據 category 參數來決定載入哪種單字集
     # 目前只處理 '1200'，未來可以擴展
     return render_template('vocabulary_learning.html', category=category)
+
+@app.route("/custom_vocabulary", methods=["GET"])
+@login_required
+def custom_vocabulary():
+    """顯示用戶自訂單字卡頁面"""
+    user_words = CustomVocabulary.query.filter_by(user_id=current_user.id).all()
+    words_data = []
+    for word in user_words:
+        words_data.append({
+            'english': word.english_word,
+            'chinese': word.chinese_translation,
+            'id': word.id # 方便前端識別和操作
+        })
+    words_json = json.dumps(words_data, ensure_ascii=False)
+    return render_template('custom_vocabulary.html', words=words_json)
+
+@app.route("/add_custom_word", methods=["POST"])
+@login_required
+def add_custom_word():
+    """新增用戶自訂單字"""
+    data = request.get_json()
+    english_word = data.get('english', '').strip()
+    chinese_translation = data.get('chinese', '').strip()
+
+    if not english_word:
+        return jsonify({'success': False, 'message': '英文單字不能為空'}), 400
+
+    # 如果中文翻譯為空，則呼叫 AI 進行翻譯
+    if not chinese_translation:
+        chinese_translation = ai_translate_english_to_chinese(english_word)
+        if chinese_translation == "AI翻譯失敗":
+            return jsonify({'success': False, 'message': 'AI翻譯失敗，請手動輸入中文翻譯'}), 500
+
+    new_word = CustomVocabulary(
+        english_word=english_word,
+        chinese_translation=chinese_translation,
+        user_id=current_user.id
+    )
+    db.session.add(new_word)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': '單字新增成功',
+        'word': {
+            'id': new_word.id,
+            'english': new_word.english_word,
+            'chinese': new_word.chinese_translation
+        }
+    })
+
 
 @app.route("/voice", methods=["GET"])
 def voice():
@@ -2668,6 +2730,190 @@ def preload_common_resources():
         
     except Exception as e:
         print(f"⚠️ 預載入失敗: {e}")
+
+# ===== 教材練習功能 =====
+@app.route('/material_practice')
+def material_practice():
+    """教材練習頁面"""
+    return render_template('material_practice.html')
+
+@app.route('/api/material_practice/upload', methods=['POST'])
+def upload_material():
+    """上傳教材檔案並建立向量資料庫"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': '沒有選擇檔案'})
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': '沒有選擇檔案'})
+        
+        # 檢查檔案類型
+        allowed_extensions = {'.pdf', '.txt', '.csv'}
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({'success': False, 'message': '不支援的檔案格式'})
+        
+        # 儲存檔案到臨時目錄
+        upload_dir = 'uploads/material_practice'
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 使用時間戳避免檔名衝突
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        safe_filename = f"{timestamp}_{file.filename}"
+        file_path = os.path.join(upload_dir, safe_filename)
+        file.save(file_path)
+        
+        # 建立向量資料庫
+        from database_manager import DatabaseManager
+        from build_vector_db import build_vector_db
+        
+        # 設定向量資料庫路徑
+        vector_db_path = f"vector_db/temp_{timestamp}"
+        
+        # 建立向量資料庫
+        build_vector_db(file_path, f"temp_{timestamp}", vector_db_path)
+        
+        # 儲存到 session 中供後續查詢使用
+        session['current_material'] = {
+            'file_path': file_path,
+            'vector_db_path': vector_db_path,
+            'db_name': f"temp_{timestamp}",
+            'filename': file.filename
+        }
+        
+        return jsonify({
+            'success': True, 
+            'message': '檔案上傳成功',
+            'filename': file.filename
+        })
+        
+    except Exception as e:
+        print(f"Upload error: {str(e)}")
+        return jsonify({'success': False, 'message': f'上傳失敗: {str(e)}'})
+
+@app.route('/api/material_practice/ask', methods=['POST'])
+def ask_material_question():
+    """向教材提問"""
+    try:
+        data = request.get_json()
+        question = data.get('question', '').strip()
+        
+        if not question:
+            return jsonify({'success': False, 'message': '問題不能為空'})
+        
+        # 檢查是否有上傳的教材
+        if 'current_material' not in session:
+            return jsonify({'success': False, 'message': '請先上傳教材檔案'})
+        
+        material_info = session['current_material']
+        db_name = material_info['db_name']
+        
+        # 使用 QA 系統回答問題
+        from qa_system import QASystem
+        from database_manager import DatabaseManager
+        from langchain_community.vectorstores import Chroma
+        from langchain_huggingface import HuggingFaceEmbeddings
+        from config import settings
+        from langchain.chains import RetrievalQA
+        from safe_gemini_llm import GeminiLLM
+        from api_key_manager import get_key
+        
+        # 直接載入臨時向量資料庫，不使用 DatabaseManager
+        vector_db_path = material_info['vector_db_path']
+        
+        # 建立 embedding
+        embedding = HuggingFaceEmbeddings(
+            model_name=settings.EMBEDDING_MODEL_NAME,
+            model_kwargs={'device': 'cpu'},
+            encode_kwargs={'normalize_embeddings': True}
+        )
+        
+        # 載入向量資料庫
+        vectorstore = Chroma(
+            persist_directory=vector_db_path,
+            embedding_function=embedding
+        )
+        
+        # 建立檢索器
+        retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+        
+        # 建立 LLM
+        api_key = get_key("gemini")
+        if not api_key:
+            raise ValueError("❌ 沒有設定 Gemini API 金鑰")
+        
+        llm = GeminiLLM(api_key=api_key)
+        
+        # 建立 QA Chain
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=llm,
+            retriever=retriever,
+            return_source_documents=True
+        )
+        
+        # 獲取答案
+        result = qa_chain(question)
+        answer = result["result"].strip()
+        source_docs = result["source_documents"]
+        
+        # 格式化答案
+        if source_docs:
+            sources_summary = []
+            for doc in source_docs:
+                content_preview = doc.page_content[:50] + "..." if len(doc.page_content) > 50 else doc.page_content
+                sources_summary.append(content_preview)
+            sources_str = "、".join(sources_summary)
+            formatted_answer = (
+                "根據您上傳的教材，以下是針對您問題的解答：\n\n"
+                f"{answer}\n\n"
+                f"（參考內容：{sources_str}）\n\n"
+                "歡迎繼續提問。"
+            )
+        else:
+            formatted_answer = (
+                "很抱歉，在您上傳的教材中找不到直接相關的內容，但根據 AI 的知識，提供以下回答：\n\n"
+                f"{answer}\n\n"
+                "建議您上傳更詳細的教材或調整問題內容。"
+            )
+        
+        answer = formatted_answer
+        
+        return jsonify({
+            'success': True,
+            'answer': answer,
+            'question': question
+        })
+        
+    except Exception as e:
+        print(f"Ask error: {str(e)}")
+        return jsonify({'success': False, 'message': f'處理問題時發生錯誤: {str(e)}'})
+
+@app.route('/api/material_practice/clear', methods=['POST'])
+def clear_material():
+    """清除當前教材和臨時檔案"""
+    try:
+        if 'current_material' in session:
+            material_info = session['current_material']
+            
+            # 刪除上傳的檔案
+            if os.path.exists(material_info['file_path']):
+                os.remove(material_info['file_path'])
+            
+            # 刪除向量資料庫
+            vector_db_path = material_info['vector_db_path']
+            if os.path.exists(vector_db_path):
+                import shutil
+                shutil.rmtree(vector_db_path)
+            
+            # 清除 session
+            del session['current_material']
+        
+        return jsonify({'success': True, 'message': '教材已清除'})
+        
+    except Exception as e:
+        print(f"Clear error: {str(e)}")
+        return jsonify({'success': False, 'message': f'清除失敗: {str(e)}'})
 
 if __name__ == "__main__":
     # 檢查 API 管理器狀態

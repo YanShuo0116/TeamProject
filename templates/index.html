@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專題功能實驗室</title>
+    <title>智慧ABC - 你的英文好幫手</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
     <link href="https://fonts.googleapis.com/css?family=Knewave" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -30,7 +30,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-home"></i> 首頁
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height: 30px; margin-right: 8px;">
+                
             </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -46,6 +47,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/composition">作文助手</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/material_practice">教材練習</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/elementary_english">國小英文教學</a>
@@ -83,8 +87,8 @@
             <div class="row">
                 <div class="col-12 text-center">
                     <div class="home_text">
-                        <h1 class="team-title animate__animated animate__fadeInDown">專題功能實驗室</h1>
-                        <h4 class="team-subtitle animate__animated animate__fadeInUp">AI學習工具 提升教學速率</h4>
+                        <h1 class="team-title animate__animated animate__fadeInDown">智慧ABC-你的英文好幫手</h1>
+                        <h4 class="team-subtitle animate__animated animate__fadeInUp">高效學習 AI學習工具 提升教學速率</h4>
                     </div>
                 </div>
             </div>
@@ -118,8 +122,9 @@
                         <p>提供國小學童完善的學習資源，從基礎到進階。</p>
                         <div class="d-flex flex-column">
                             <a href="/vocabulary_learning/1200" class="btn feature-btn mb-2">國小1200基礎單字</a>
+                            <a href="/custom_vocabulary" class="btn feature-btn mb-2">我的自訂單字卡</a>
                             <a href="/speaking_practice" class="btn feature-btn mb-2">口說練習</a>
-                            <a href="/vocabulary_learning/mid" class="btn feature-btn mb-2">教材學習</a>
+                            <a href="/material_practice" class="btn feature-btn mb-2">教材練習</a>
                         </div>
                     </div>
                 </div>
