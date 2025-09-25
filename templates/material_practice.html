@@ -30,19 +30,28 @@
                         <a class="nav-link" href="/translator">翻譯機</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/ai-teacher">AI 英文老師</a>
+                        <a class="nav-link" href="/composition">作文助手</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="vocabDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            單字卡
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="vocabDropdown">
+                            <a class="dropdown-item" href="/vocabulary_learning/1200">國小1200基礎單字</a>
+                            <a class="dropdown-item" href="/custom_vocabulary">自訂單字卡</a>
+                        </div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/composition">作文助手</a>
+                        <a class="nav-link" href="/speaking_practice">口說練習</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/material_practice">教材練習</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/elementary_english">國小英文教學</a>
+                        <a class="nav-link" href="/new_we">關於我們</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/new_we">關於我們</a>
+                        <a class="nav-link" href="/ai-teacher">AI 英文老師</a>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">

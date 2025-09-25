@@ -43,13 +43,7 @@
                         <a class="nav-link" href="/translator">翻譯機</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/ai-teacher">AI 英文老師</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="/composition">作文助手</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/material_practice">教材練習</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="vocabDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -61,7 +55,16 @@
                         </div>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/speaking_practice">口說練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/material_practice">教材練習</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/new_we">關於我們</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher">AI 英文老師</a>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
@@ -124,17 +127,17 @@
                 </div>
             </div>
 
-            <!-- Feature 2: AI英文老師 -->
+             <!-- Feature 2: 作文助手 -->
             <div class="feature-block wow animate__animated animate__fadeInUp">
                 <div class="feature-video">
                     <video autoplay muted loop playsinline>
-                        <source src="{{ url_for('static', filename='images/AI英文老師.mp4') }}" type="video/mp4">
+                        <source src="{{ url_for('static', filename='images/作文助手.mp4') }}" type="video/mp4">
                     </video>
                 </div>
                 <div class="feature-description">
-                    <h2>AI英文老師</h2>
-                    <p>您的隨身英文家教，提供全方位的英語學習輔導。無論是文法糾錯、單字釋義，還是文章理解，AI老師都能即時給予回饋與指導，有效提升您的綜合英語能力。</p>
-                    <a href="/ai-teacher" class="btn">開始學習</a>
+                    <h2>作文助手</h2>
+                    <p>引導式寫作工具，從主題發想、關鍵字設定到句型變化，循序漸進地幫助您完成一篇結構完整、內容豐富的文章。AI還能對您的草稿進行潤飾與評分，提升寫作水平。</p>
+                    <a href="/composition" class="btn">開始寫作</a>
                 </div>
             </div>
 
@@ -176,24 +179,24 @@
                 </div>
                 <div class="feature-description">
                     <h2>教材練習</h2>
-                    <p>將您的課堂教材轉化為互動式練習。只需上傳教材圖片或文字，AI就能圍繞內容生成問答，幫助您深化理解、鞏固記憶，讓學習不再是被動吸收。</p>
+                    <p>將您的課堂教材轉化為互動式練習。只需上傳教材pdf，AI就能圍繞內容生成問答，幫助您深化理解、鞏固記憶，讓學習不再是被動吸收。</p>
                     <a href="/material_practice" class="btn">上傳教材</a>
                 </div>
             </div>
-
-            <!-- Feature 6: 作文助手 -->
+<!-- Feature 6: AI英文老師 -->
             <div class="feature-block wow animate__animated animate__fadeInUp">
                 <div class="feature-video">
                     <video autoplay muted loop playsinline>
-                        <source src="{{ url_for('static', filename='images/作文助手.mp4') }}" type="video/mp4">
+                        <source src="{{ url_for('static', filename='images/AI英文老師.mp4') }}" type="video/mp4">
                     </video>
                 </div>
                 <div class="feature-description">
-                    <h2>作文助手</h2>
-                    <p>引導式寫作工具，從主題發想、關鍵字設定到句型變化，循序漸進地幫助您完成一篇結構完整、內容豐富的文章。AI還能對您的草稿進行潤飾與評分，提升寫作水平。</p>
-                    <a href="/composition" class="btn">開始寫作</a>
+                    <h2>AI英文老師</h2>
+                    <p>您的隨身英文家教，提供全方位的英語學習輔導。無論是文法糾錯、單字釋義，還是文章理解，AI老師都能即時給予回饋與指導，有效提升您的綜合英語能力。</p>
+                    <a href="/ai-teacher" class="btn">開始學習</a>
                 </div>
             </div>
+           
 
         </div>
     </section>
