@@ -1001,9 +1001,11 @@ body.dark-mode {
     justify-content: center;
     align-items: center;
     min-height: 60vh;
+    width: 100%; /* Ensure container takes full width */
 }
 
 .word-card {
+    margin: auto; /* Add this for robust centering */
     width: 100%;
     max-width: 500px;
     height: 350px;
@@ -1497,4 +1499,82 @@ body.dark-mode {
     font-size: 1.8rem;
     font-weight: 600;
     text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Custom Vocabulary Page Specific Styles */
+.word-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.add-word-card {
+    width: 100%;
+    max-width: 500px;
+    height: 350px;
+    border: 3px dashed #495057;
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.add-word-card:hover {
+    background-color: #2a2a2a;
+    border-color: var(--primary-color);
+}
+
+.custom-book-card .card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.delete-word-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+}
+
+/* Dark Theme Modal */
+#addWordModal .modal-content {
+    background-color: var(--card-bg-dark);
+    color: var(--text-light);
+    border: 1px solid #495057;
+    border-radius: 15px;
+}
+
+#addWordModal .modal-header {
+    border-bottom: 1px solid #495057;
+}
+
+#addWordModal .modal-footer {
+    border-top: 1px solid #495057;
+}
+
+#addWordModal .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+#addWordModal .form-control {
+    background-color: #2a2a2a;
+    border-color: #555;
+    color: var(--text-light);
+}
+
+#addWordModal .form-control:focus {
+    background-color: #2a2a2a;
+    border-color: var(--primary-color);
+    color: var(--text-light);
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+}
+
+#addWordModal .form-text {
+    color: rgba(255, 255, 255, 0.5);
 }

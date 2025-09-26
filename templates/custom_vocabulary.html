@@ -3,51 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的自訂單字卡</title>
+    <title>自訂單字卡</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/vocabulary_learning.css') }}">
-    <style>
-        /* Custom styles for this page */
-        .add-word-form {
-            background-color: var(--card-bg-color);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
-        .add-word-form h2 {
-            color: var(--text-color);
-            margin-bottom: 20px;
-        }
-        .add-word-form .form-control {
-            background-color: var(--input-bg-color);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-        }
-        .add-word-form .form-control::placeholder {
-            color: var(--secondary-text-color);
-        }
-        .add-word-form .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-        }
-        .add-word-form .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-        .word-card-container {
-            margin-top: 30px; /* Add some space above the cards */
-        }
-        .no-words-message {
-            text-align: center;
-            color: var(--secondary-text-color);
-            margin-top: 50px;
-            font-size: 1.2em;
-        }
-    </style>
 </head>
 <body class="dark-mode">
     <!-- 導航欄 -->
@@ -92,7 +53,6 @@
                         <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
                     </li>
                 </ul>
-                <!-- 口音切換器會由 global_accent_switch.js 自動添加到這裡 -->
             </div>
         </div>
     </nav>
@@ -100,39 +60,38 @@
     <!-- 主要內容 -->
     <div class="main-content">
         <div class="container">
-            <h1 class="page-title">我的自訂單字卡</h1>
-
-            <!-- 新增單字表單 -->
-            <div class="add-word-form">
-                <h2>新增自訂單字</h2>
-                <form id="addCustomWordForm">
-                    <div class="mb-3">
-                        <label for="englishWordInput" class="form-label">英文單字 (必填)</label>
-                        <input type="text" class="form-control" id="englishWordInput" placeholder="輸入英文單字" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="chineseTranslationInput" class="form-label">中文翻譯 (可選，留空則由 AI 生成)</label>
-                        <input type="text" class="form-control" id="chineseTranslationInput" placeholder="輸入中文翻譯">
-                    </div>
-                    <button type="submit" class="btn btn-primary">新增單字</button>
-                </form>
-                <div id="formMessage" class="mt-3"></div>
-            </div>
-
             <!-- 載入指示器 -->
             <div id="loadingSpinner" class="loading-spinner" style="display: none;">
                 <div class="spinner"></div>
                 <p>載入中...</p>
             </div>
 
-            <!-- 單字卡片學習區塊 -->
-            <div id="wordCardSection">
-                <h2 class="section-title">我的單字卡</h2>
-                <div id="noWordsMessage" class="no-words-message" style="display: none;">
-                    您還沒有新增任何自訂單字。請在上方表單新增您的第一個單字！
+            <!-- 單字本選擇區塊 -->
+            <div id="bookSelectionSection">
+                <h1 class="page-title">我的單字本</h1>
+                <div class="create-book-form mb-4">
+                    <div class="input-group">
+                        <input type="text" id="newBookName" class="form-control" placeholder="輸入新單字本名稱...">
+                        <button class="btn btn-primary" id="createBookBtn">
+                            <i class="fas fa-plus"></i> 建立
+                        </button>
+                    </div>
                 </div>
+                <div class="row" id="bookCardsContainer">
+                    <!-- 單字本卡片將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+            
+            <!-- 單字卡片學習區塊 (預設隱藏) -->
+            <div id="wordCardSection" style="display: none;">
+                <div class="word-card-header">
+                    <button class="btn btn-secondary mb-3" id="backToBooksBtn"><i class="fas fa-arrow-left"></i> 返回單字本列表</button>
+                    <h2 class="section-title" id="currentBookTitle"></h2>
+                    <button class="btn btn-primary mb-3" id="addWordBtn"><i class="fas fa-plus"></i> 新增單字</button>
+                </div>
+                
                 <div class="word-card-container">
-                    <div class="word-card" id="wordCard">
+                    <div class="word-card" id="wordCard" style="display: none;">
                         <div class="card-face card-front">
                             <img src="" alt="Word Image" class="word-image" id="wordImage">
                             <div class="word-text" id="englishWord"></div>
@@ -140,19 +99,14 @@
                         </div>
                         <div class="card-face card-back">
                             <div class="chinese-text" id="chineseWord"></div>
+                            <button class="btn btn-sm btn-danger delete-word-btn" id="deleteWordBtn"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                 </div>
 
                 <div class="controls">
                     <button class="control-btn" id="prevWord"><i class="fas fa-arrow-left"></i> 上一個</button>
-                    <button class="control-btn" id="pronunciationPracticeBtn">
-                        <i class="fas fa-microphone"></i> 發音練習
-                    </button>
                     <button class="control-btn" id="flipCard"><i class="fas fa-sync-alt"></i> 翻轉</button>
-                    <button class="control-btn" id="deepLearningBtn">
-                        <i class="fas fa-search"></i> 深入了解
-                    </button>
                     <button class="control-btn" id="nextWord">下一個 <i class="fas fa-arrow-right"></i></button>
                 </div>
 
@@ -163,197 +117,38 @@
         </div>
     </div>
 
+    <!-- 新增單字 Modal -->
+    <div class="modal fade" id="addWordModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增單字</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addWordForm">
+                        <div class="mb-3">
+                            <label for="englishWordInput" class="form-label">英文單字</label>
+                            <input type="text" class="form-control" id="englishWordInput" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chineseWordInput" class="form-label">中文翻譯 (可選)</label>
+                            <input type="text" class="form-control" id="chineseWordInput">
+                            <div class="form-text">若留空，將由 AI 自動翻譯。</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveWordBtn">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
-    <script>
-        // Custom JavaScript for this page
-        const words = JSON.parse('{{ words|safe }}');
-        let currentWordIndex = 0;
-        let isCardFlipped = false;
-
-        const englishWordDisplay = document.getElementById('englishWord');
-        const chineseWordDisplay = document.getElementById('chineseWord');
-        const wordImage = document.getElementById('wordImage');
-        const wordCard = document.getElementById('wordCard');
-        const playAudioBtn = document.getElementById('playAudio');
-        const prevWordBtn = document.getElementById('prevWord');
-        const nextWordBtn = document.getElementById('nextWord');
-        const flipCardBtn = document.getElementById('flipCard');
-        const progressBar = document.getElementById('progressBar');
-        const noWordsMessage = document.getElementById('noWordsMessage');
-        const addCustomWordForm = document.getElementById('addCustomWordForm');
-        const englishWordInput = document.getElementById('englishWordInput');
-        const chineseTranslationInput = document.getElementById('chineseTranslationInput');
-        const formMessage = document.getElementById('formMessage');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const pronunciationPracticeBtn = document.getElementById('pronunciationPracticeBtn');
-        const deepLearningBtn = document.getElementById('deepLearningBtn');
-
-        // Function to display a word
-        function displayWord(index) {
-            if (words.length === 0) {
-                englishWordDisplay.textContent = '';
-                chineseWordDisplay.textContent = '';
-                wordImage.src = '';
-                progressBar.textContent = '0/0';
-                wordCard.style.display = 'none';
-                document.querySelector('.controls').style.display = 'none';
-                document.querySelector('.progress-container').style.display = 'none';
-                noWordsMessage.style.display = 'block';
-                return;
-            }
-
-            noWordsMessage.style.display = 'none';
-            wordCard.style.display = 'block';
-            document.querySelector('.controls').style.display = 'flex';
-            document.querySelector('.progress-container').style.display = 'block';
-
-            const word = words[index];
-            englishWordDisplay.textContent = word.english;
-            chineseWordDisplay.textContent = word.chinese;
-            // For custom words, we don't have images from Pexels, so use a placeholder
-            wordImage.src = 'https://via.placeholder.com/300?text=' + word.english.replace(' ', '+'); 
-            
-            // Reset card flip state
-            if (isCardFlipped) {
-                wordCard.classList.remove('is-flipped');
-                isCardFlipped = false;
-            }
-            updateProgressBar();
-        }
-
-        // Function to update progress bar
-        function updateProgressBar() {
-            progressBar.textContent = `${currentWordIndex + 1}/${words.length}`;
-        }
-
-        // Function to play audio
-        async function playAudio(wordText) {
-            try {
-                // Get current accent preference from global_navbar.js or default to 'us'
-                const currentAccent = window.globalAccentSwitch ? window.globalAccentSwitch.getCurrentAccent() : 'us';
-                const response = await fetch(`/play-word-audio?word=${encodeURIComponent(wordText)}&accent=${currentAccent}`);
-                if (response.ok) {
-                    const audioBlob = await response.blob();
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    const audio = new Audio(audioUrl);
-                    audio.play();
-                } else {
-                    console.error('Failed to fetch audio:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Error playing audio:', error);
-            }
-        }
-
-        // Event Listeners for controls
-        playAudioBtn.addEventListener('click', () => {
-            playAudio(words[currentWordIndex].english);
-        });
-
-        flipCardBtn.addEventListener('click', () => {
-            wordCard.classList.toggle('is-flipped');
-            isCardFlipped = !isCardFlipped;
-        });
-
-        prevWordBtn.addEventListener('click', () => {
-            currentWordIndex = (currentWordIndex - 1 + words.length) % words.length;
-            displayWord(currentWordIndex);
-        });
-
-        nextWordBtn.addEventListener('click', () => {
-            currentWordIndex = (currentWordIndex + 1) % words.length;
-            displayWord(currentWordIndex);
-        });
-
-        // Pronunciation Practice Button
-        if (pronunciationPracticeBtn) {
-            pronunciationPracticeBtn.addEventListener('click', () => {
-                if (words.length > 0 && currentWordIndex >= 0) {
-                    const currentWord = words[currentWordIndex].english;
-                    // Assuming showVoicePracticeOverlay is globally available from vocabulary_learning.js or a shared script
-                    if (typeof showVoicePracticeOverlay === 'function') {
-                        showVoicePracticeOverlay(currentWord);
-                    } else {
-                        alert('發音練習功能尚未載入。');
-                    }
-                }
-            });
-        }
-
-        // Deep Learning Button
-        if (deepLearningBtn) {
-            deepLearningBtn.addEventListener('click', () => {
-                if (words.length > 0 && currentWordIndex >= 0) {
-                    const currentWord = words[currentWordIndex].english;
-                    // Assuming showTranslatorOverlay is globally available from vocabulary_learning.js or a shared script
-                    if (typeof showTranslatorOverlay === 'function') {
-                        showTranslatorOverlay(currentWord);
-                    } else {
-                        alert('深入了解功能尚未載入。');
-                    }
-                }
-            });
-        }
-
-        // Handle form submission for adding custom words
-        addCustomWordForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            formMessage.innerHTML = ''; // Clear previous messages
-            loadingSpinner.style.display = 'block'; // Show loading spinner
-
-            const english = englishWordInput.value.trim();
-            const chinese = chineseTranslationInput.value.trim();
-
-            if (!english) {
-                formMessage.innerHTML = '<div class="alert alert-danger">英文單字不能為空！</div>';
-                loadingSpinner.style.display = 'none';
-                return;
-            }
-
-            try {
-                const response = await fetch('/add_custom_word', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ english, chinese }),
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    formMessage.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
-                    // Add the new word to our local words array
-                    words.push(result.word);
-                    // If it's the first word, display it
-                    if (words.length === 1) {
-                        currentWordIndex = 0;
-                        displayWord(currentWordIndex);
-                    } else {
-                        // If new word is added, navigate to it
-                        currentWordIndex = words.length - 1;
-                        displayWord(currentWordIndex);
-                    }
-                    englishWordInput.value = '';
-                    chineseTranslationInput.value = '';
-                } else {
-                    formMessage.innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
-                }
-            } catch (error) {
-                console.error('Error adding custom word:', error);
-                formMessage.innerHTML = '<div class="alert alert-danger">新增單字失敗，請稍後再試。</div>';
-            } finally {
-                loadingSpinner.style.display = 'none'; // Hide loading spinner
-            }
-        });
-
-        // Initial display
-        document.addEventListener('DOMContentLoaded', () => {
-            displayWord(currentWordIndex);
-        });
-    </script>
-    <!-- The following script contains global functions like showVoicePracticeOverlay and showTranslatorOverlay -->
-    <script src="{{ url_for('static', filename='js/vocabulary_learning.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom_vocabulary.js') }}"></script>
 </body>
 </html>

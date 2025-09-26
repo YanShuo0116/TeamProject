@@ -624,54 +624,198 @@ def vocabulary_learning(category):
     # 目前只處理 '1200'，未來可以擴展
     return render_template('vocabulary_learning.html', category=category)
 
+from models import CustomVocabularyBook
 @app.route("/custom_vocabulary", methods=["GET"])
 @login_required
 def custom_vocabulary():
-    """顯示用戶自訂單字卡頁面"""
-    user_words = CustomVocabulary.query.filter_by(user_id=current_user.id).all()
+    """呈現自訂單字本頁面"""
+    return render_template('custom_vocabulary.html')
+
+@app.route("/api/custom_vocabulary/books", methods=["GET"])
+@login_required
+def get_custom_books():
+    """獲取用戶的所有自訂單字本"""
+    books = CustomVocabularyBook.query.filter_by(user_id=current_user.id).order_by(CustomVocabularyBook.created_at.desc()).all()
+    books_data = []
+    for book in books:
+        books_data.append({
+            'id': book.id,
+            'name': book.name,
+            'word_count': book.words.count()
+        })
+    return jsonify(books_data)
+
+@app.route("/api/custom_vocabulary/create_book", methods=["POST"])
+@login_required
+def create_custom_book():
+    """創建新的自訂單字本"""
+    data = request.get_json()
+    book_name = data.get('name', '').strip()
+
+    if not book_name:
+        return jsonify({'success': False, 'message': '單字本名稱不能為空'}), 400
+
+    new_book = CustomVocabularyBook(name=book_name, user_id=current_user.id)
+    db.session.add(new_book)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': '單字本已建立',
+        'book': {
+            'id': new_book.id,
+            'name': new_book.name,
+            'word_count': 0
+        }
+    })
+
+@app.route("/api/custom_vocabulary/book/<int:book_id>", methods=["GET"])
+@login_required
+def get_custom_book_details(book_id):
+    """獲取特定單字本的詳細資訊及其包含的單字"""
+    book = CustomVocabularyBook.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+    words = CustomVocabulary.query.filter_by(book_id=book.id).all()
+    
     words_data = []
-    for word in user_words:
+    for word in words:
         words_data.append({
+            'id': word.id,
             'english': word.english_word,
             'chinese': word.chinese_translation,
-            'id': word.id # 方便前端識別和操作
+            'image': get_image_from_pexels(word.english_word) # 重用現有函數
         })
-    words_json = json.dumps(words_data, ensure_ascii=False)
-    return render_template('custom_vocabulary.html', words=words_json)
+        
+    return jsonify({
+        'id': book.id,
+        'name': book.name,
+        'words': words_data
+    })
 
-@app.route("/add_custom_word", methods=["POST"])
+@app.route("/api/custom_vocabulary/add_word", methods=["POST"])
 @login_required
 def add_custom_word():
-    """新增用戶自訂單字"""
+    """新增單字到指定的自訂單字本"""
     data = request.get_json()
+    book_id = data.get('book_id')
     english_word = data.get('english', '').strip()
     chinese_translation = data.get('chinese', '').strip()
 
-    if not english_word:
-        return jsonify({'success': False, 'message': '英文單字不能為空'}), 400
+    if not book_id or not english_word:
+        return jsonify({'success': False, 'message': '缺少必要資訊'}), 400
 
-    # 如果中文翻譯為空，則呼叫 AI 進行翻譯
+    # 檢查單字本是否存在且屬於該用戶
+    book = CustomVocabularyBook.query.filter_by(id=book_id, user_id=current_user.id).first()
+    if not book:
+        return jsonify({'success': False, 'message': '找不到指定的單字本'}), 404
+
+    # 如果中文翻譯為空，使用 AI 翻譯
     if not chinese_translation:
         chinese_translation = ai_translate_english_to_chinese(english_word)
         if chinese_translation == "AI翻譯失敗":
-            return jsonify({'success': False, 'message': 'AI翻譯失敗，請手動輸入中文翻譯'}), 500
+            return jsonify({'success': False, 'message': 'AI翻譯失敗，請手動輸入中文'}), 500
 
     new_word = CustomVocabulary(
         english_word=english_word,
         chinese_translation=chinese_translation,
-        user_id=current_user.id
+        user_id=current_user.id,
+        book_id=book_id
     )
     db.session.add(new_word)
     db.session.commit()
 
     return jsonify({
         'success': True,
-        'message': '單字新增成功',
+        'message': '單字已新增',
         'word': {
             'id': new_word.id,
             'english': new_word.english_word,
-            'chinese': new_word.chinese_translation
+            'chinese': new_word.chinese_translation,
+            'image': get_image_from_pexels(new_word.english_word)
         }
+    })
+
+@app.route("/api/custom_vocabulary/delete_word/<int:word_id>", methods=["DELETE"])
+@login_required
+def delete_custom_word(word_id):
+    word = CustomVocabulary.query.filter_by(id=word_id, user_id=current_user.id).first()
+    if not word:
+        return jsonify({'success': False, 'message': '找不到單字或權限不足'}), 404
+    
+    db.session.delete(word)
+    db.session.commit()
+    return jsonify({'success': True, 'message': '單字已刪除'})
+
+@app.route("/api/custom_vocabulary/delete_book/<int:book_id>", methods=["DELETE"])
+@login_required
+def delete_custom_book(book_id):
+    book = CustomVocabularyBook.query.filter_by(id=book_id, user_id=current_user.id).first()
+    if not book:
+        return jsonify({'success': False, 'message': '找不到單字本或權限不足'}), 404
+        
+    db.session.delete(book)
+    db.session.commit()
+    return jsonify({'success': True, 'message': '單字本已刪除'})
+    
+@app.route("/api/custom_quiz/start/<int:book_id>", methods=["POST"])
+@login_required
+def start_custom_quiz(book_id):
+    book = CustomVocabularyBook.query.filter_by(id=book_id, user_id=current_user.id).first_or_404()
+    words = book.words.all()
+
+    if len(words) < 4:
+        return jsonify({'error': '單字本至少需要4個單字才能開始測驗'}), 400
+
+    # 偽裝成一般課程以重用測驗邏輯
+    theme_name = "custom_book"
+    lesson_name = f"book_{book.id}"
+
+    # 放棄任何正在進行的相同測驗
+    existing_quizzes = QuizAttempt.query.filter_by(
+        user_id=current_user.id,
+        theme_name=theme_name,
+        lesson_name=lesson_name,
+        status='in_progress'
+    ).all()
+    for quiz in existing_quizzes:
+        quiz.status = 'abandoned'
+        quiz.completed_at = datetime.now()
+
+    quiz_attempt = QuizAttempt(
+        user_id=current_user.id,
+        theme_name=theme_name,
+        lesson_name=lesson_name,
+        total_questions=len(words),
+        status='in_progress'
+    )
+    db.session.add(quiz_attempt)
+    db.session.flush()
+
+    # 為每個單字創建問題
+    question_types = ['chinese_to_english', 'english_to_chinese', 'spelling']
+    for word in words:
+        # 需要先將 CustomVocabulary 轉換為 Vocabulary
+        # 這裡我們直接在 QuizQuestion 中儲存 CustomVocabulary 的 ID
+        # 但 get_quiz_question 需要能處理這種情況
+        question_type = random.choice(question_types)
+        
+        # 為了重用邏輯，我們需要一個 Vocabulary 實例
+        # 這裡我們假設 CustomVocabulary 的結構與 Vocabulary 相似
+        # 注意：這是一個簡化，理想情況下應該有更通用的測驗模型
+        vocab_entry = Vocabulary(id=word.id, word=word.english_word, chinese_translation=word.chinese_translation)
+
+        quiz_question = QuizQuestion(
+            attempt_id=quiz_attempt.id,
+            word_id=word.id, # 這裡儲存的是 CustomVocabulary 的 ID
+            question_type=question_type
+        )
+        db.session.add(quiz_question)
+
+    db.session.commit()
+
+    return jsonify({
+        'quiz_id': quiz_attempt.id,
+        'total_questions': len(words),
+        'message': '測驗已開始'
     })
 
 
@@ -1821,6 +1965,9 @@ def get_quiz_question(quiz_id, question_index):
     
     current_question = questions[question_index]
     word = current_question.word
+
+    if not word:
+        return jsonify({'error': 'Word not found for this question'}), 404
     
     # 根據題型生成問題內容
     question_data = {
@@ -1862,45 +2009,36 @@ def get_quiz_question(quiz_id, question_index):
 
 def generate_english_options(correct_word, theme_name, lesson_name):
     """生成英文選項（包含正確答案和3個干擾項）"""
-    # 確保正確答案不為空
-    if not correct_word.word or correct_word.word.strip() == '' or correct_word.word.lower() == 'null':
-        return ['error', 'loading', 'failed', 'retry']
-    
-    # 獲取同課程的其他單字作為干擾項（排除空值和null值）
-    other_words = Vocabulary.query.filter(
-        Vocabulary.theme_name == theme_name,
-        Vocabulary.lesson_name == lesson_name,
-        Vocabulary.id != correct_word.id,
-        Vocabulary.word.isnot(None),
-        Vocabulary.word != '',
-        Vocabulary.word != 'null',
-        ~Vocabulary.word.like('%null%')  # 排除包含null的字串
-    ).limit(15).all()
-    
     options = [correct_word.word]
     
-    # 添加3個干擾項
-    for word in other_words:
-        if len(options) >= 4:
-            break
-        if (word.word and 
-            word.word.strip() != '' and 
-            word.word.lower() != 'null' and
-            'null' not in word.word.lower() and
-            word.word not in options):
-            options.append(word.word)
-    
-    # 如果不夠3個干擾項，從其他課程補充
-    if len(options) < 4:
-        additional_words = Vocabulary.query.filter(
+    # === MODIFICATION FOR CUSTOM QUIZ ===
+    if theme_name == 'custom_book':
+        try:
+            book_id = int(lesson_name.split('_')[-1])
+            book = db.session.get(CustomVocabularyBook, book_id)
+            if book:
+                other_words_query = book.words.filter(CustomVocabulary.id != correct_word.id)
+                other_words = other_words_query.limit(15).all()
+                for word in other_words:
+                    if len(options) >= 4: break
+                    if word.english_word not in options:
+                        options.append(word.english_word)
+        except (ValueError, IndexError) as e:
+            print(f"Could not parse book_id from lesson_name: {lesson_name}, error: {e}")
+    else:
+    # === END MODIFICATION ===
+        # 獲取同課程的其他單字作為干擾項（排除空值和null值）
+        other_words = Vocabulary.query.filter(
+            Vocabulary.theme_name == theme_name,
+            Vocabulary.lesson_name == lesson_name,
             Vocabulary.id != correct_word.id,
             Vocabulary.word.isnot(None),
             Vocabulary.word != '',
             Vocabulary.word != 'null',
-            ~Vocabulary.word.like('%null%')
-        ).limit(30).all()
+            ~Vocabulary.word.like('%null%')  # 排除包含null的字串
+        ).limit(15).all()
         
-        for word in additional_words:
+        for word in other_words:
             if len(options) >= 4:
                 break
             if (word.word and 
@@ -1909,7 +2047,26 @@ def generate_english_options(correct_word, theme_name, lesson_name):
                 'null' not in word.word.lower() and
                 word.word not in options):
                 options.append(word.word)
-    
+
+    # 如果不夠3個干擾項，從其他課程補充
+    if len(options) < 4:
+        all_other_words_query = CustomVocabulary.query if theme_name == 'custom_book' else Vocabulary.query
+        
+        additional_words = all_other_words_query.filter(
+            (CustomVocabulary.id if theme_name == 'custom_book' else Vocabulary.id) != correct_word.id
+        ).limit(30).all()
+        
+        for word in additional_words:
+            word_text = word.english_word if theme_name == 'custom_book' else word.word
+            if len(options) >= 4:
+                break
+            if (word_text and 
+                word_text.strip() != '' and 
+                word_text.lower() != 'null' and
+                'null' not in word_text.lower() and
+                word_text not in options):
+                options.append(word_text)
+
     # 如果還是不夠4個選項，添加預設選項
     default_options = ['apple', 'book', 'cat', 'dog', 'egg', 'fish', 'water', 'house', 'tree', 'sun']
     for default_option in default_options:
@@ -1918,60 +2075,44 @@ def generate_english_options(correct_word, theme_name, lesson_name):
         if default_option not in options:
             options.append(default_option)
     
-    # 確保至少有4個選項
     while len(options) < 4:
         options.append(f"option_{len(options)}")
     
     random.shuffle(options)
-    return options[:4]  # 確保只返回4個選項
+    return options[:4]
 
 def generate_chinese_options(correct_word, theme_name, lesson_name):
     """生成中文選項（包含正確答案和3個干擾項）"""
-    # 確保正確答案不為空
-    if (not correct_word.chinese_translation or 
-        correct_word.chinese_translation.strip() == '' or 
-        correct_word.chinese_translation.lower() == 'null' or
-        '未知' in correct_word.chinese_translation):
-        return ['選項載入錯誤', '請重新載入', '資料異常', '系統錯誤']
-    
-    # 獲取同課程的其他單字作為干擾項（排除中文翻譯為空的）
-    other_words = Vocabulary.query.filter(
-        Vocabulary.theme_name == theme_name,
-        Vocabulary.lesson_name == lesson_name,
-        Vocabulary.id != correct_word.id,
-        Vocabulary.chinese_translation.isnot(None),
-        Vocabulary.chinese_translation != '',
-        Vocabulary.chinese_translation != 'null',
-        ~Vocabulary.chinese_translation.like('%null%'),
-        ~Vocabulary.chinese_translation.like('%未知%')
-    ).limit(15).all()
-    
     options = [correct_word.chinese_translation]
-    
-    # 添加3個干擾項
-    for word in other_words:
-        if len(options) >= 4:
-            break
-        if (word.chinese_translation and 
-            word.chinese_translation.strip() != '' and 
-            word.chinese_translation.lower() != 'null' and
-            'null' not in word.chinese_translation.lower() and
-            '未知' not in word.chinese_translation and
-            word.chinese_translation not in options):
-            options.append(word.chinese_translation)
-    
-    # 如果不夠3個干擾項，從其他課程補充
-    if len(options) < 4:
-        additional_words = Vocabulary.query.filter(
+
+    # === MODIFICATION FOR CUSTOM QUIZ ===
+    if theme_name == 'custom_book':
+        try:
+            book_id = int(lesson_name.split('_')[-1])
+            book = db.session.get(CustomVocabularyBook, book_id)
+            if book:
+                other_words_query = book.words.filter(CustomVocabulary.id != correct_word.id)
+                other_words = other_words_query.limit(15).all()
+                for word in other_words:
+                    if len(options) >= 4: break
+                    if word.chinese_translation and word.chinese_translation not in options:
+                        options.append(word.chinese_translation)
+        except (ValueError, IndexError) as e:
+            print(f"Could not parse book_id from lesson_name: {lesson_name}, error: {e}")
+    else:
+    # === END MODIFICATION ===
+        other_words = Vocabulary.query.filter(
+            Vocabulary.theme_name == theme_name,
+            Vocabulary.lesson_name == lesson_name,
             Vocabulary.id != correct_word.id,
             Vocabulary.chinese_translation.isnot(None),
             Vocabulary.chinese_translation != '',
             Vocabulary.chinese_translation != 'null',
             ~Vocabulary.chinese_translation.like('%null%'),
             ~Vocabulary.chinese_translation.like('%未知%')
-        ).limit(30).all()
+        ).limit(15).all()
         
-        for word in additional_words:
+        for word in other_words:
             if len(options) >= 4:
                 break
             if (word.chinese_translation and 
@@ -1981,21 +2122,38 @@ def generate_chinese_options(correct_word, theme_name, lesson_name):
                 '未知' not in word.chinese_translation and
                 word.chinese_translation not in options):
                 options.append(word.chinese_translation)
-    
-    # 如果還是不夠4個選項，添加預設選項
+
+    if len(options) < 4:
+        all_other_words_query = CustomVocabulary.query if theme_name == 'custom_book' else Vocabulary.query
+        
+        additional_words = all_other_words_query.filter(
+            (CustomVocabulary.id if theme_name == 'custom_book' else Vocabulary.id) != correct_word.id
+        ).limit(30).all()
+        
+        for word in additional_words:
+            word_text = word.chinese_translation
+            if len(options) >= 4:
+                break
+            if (word_text and 
+                word_text.strip() != '' and 
+                word_text.lower() != 'null' and
+                'null' not in word_text.lower() and
+                '未知' not in word_text and
+                word_text not in options):
+                options.append(word_text)
+
     default_options = ['人物', '動物', '物品', '動作', '形容詞', '名詞', '顏色', '食物', '家庭', '學校']
     for default_option in default_options:
         if len(options) >= 4:
             break
         if default_option not in options:
             options.append(default_option)
-    
-    # 確保至少有4個選項
+            
     while len(options) < 4:
         options.append(f"選項{len(options)}")
-    
+        
     random.shuffle(options)
-    return options[:4]  # 確保只返回4個選項
+    return options[:4]
 
 @app.route("/api/submit_quiz_answer", methods=["POST"])
 def submit_quiz_answer():

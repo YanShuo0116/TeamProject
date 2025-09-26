@@ -149,12 +149,24 @@ class SpeakingSession(db.Model):
     user = db.relationship('User', backref=db.backref('speaking_practices', lazy=True))
 
 
+class CustomVocabularyBook(db.Model):
+    __tablename__ = 'custom_vocabulary_books'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('custom_vocabulary_books', lazy=True))
+    words = db.relationship('CustomVocabulary', backref='book', lazy='dynamic', cascade="all, delete-orphan")
+
 class CustomVocabulary(db.Model):
+    __tablename__ = 'custom_vocabularies'
     id = db.Column(db.Integer, primary_key=True)
     english_word = db.Column(db.String(150), nullable=False)
     chinese_translation = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('custom_vocabulary_books.id'), nullable=False)
 
     user = db.relationship('User', backref=db.backref('custom_vocabularies', lazy=True))
 
