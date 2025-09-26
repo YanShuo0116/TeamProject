@@ -1066,6 +1066,9 @@ body.dark-mode {
     border-radius: 10px;
     margin-bottom: 15px;
     object-fit: contain;
+    display: block; /* Ensure it behaves as a block element */
+    margin-left: auto; /* Center the image */
+    margin-right: auto; /* Center the image */
 }
 
 .audio-icon {
@@ -1577,4 +1580,9 @@ body.dark-mode {
 
 #addWordModal .form-text {
     color: rgba(255, 255, 255, 0.5);
+}
+
+/* Hide loading text but keep spinner */
+.loading-spinner p {
+    display: none;
 }

@@ -54,7 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({ book_id: bookId, english, chinese })
         }).then(res => res.json()),
         deleteWord: (wordId) => fetch(`/api/custom_vocabulary/delete_word/${wordId}`, { method: 'DELETE' }).then(res => res.json()),
+        // Updated Quiz API endpoints
         startQuiz: (bookId) => fetch(`/api/custom_quiz/start/${bookId}`, { method: 'POST' }).then(res => res.json()),
+        getQuizQuestion: (quizId, index) => fetch(`/api/custom_quiz/get_question/${quizId}/${index}`).then(res => res.json()),
+        submitQuizAnswer: (questionId, answer) => fetch('/api/custom_quiz/submit_answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question_id: questionId, answer: answer })
+        }).then(res => res.json()),
+        completeQuiz: (quizId) => fetch(`/api/custom_quiz/complete/${quizId}`, { method: 'POST' }).then(res => res.json()),
     };
 
     // --- View Management ---
@@ -352,17 +360,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadQuizQuestion() {
         showLoading(true);
-        const response = await fetch(`/api/get_quiz_question/${currentQuizId}/${currentQuestionIndex}`);
-        const questionData = await response.json();
+        const questionData = await api.getQuizQuestion(currentQuizId, currentQuestionIndex);
         showLoading(false);
 
-        if (response.ok) {
+        if (questionData && !questionData.error) {
             displayQuizQuestion(questionData);
             updateQuizProgress();
         } else {
-            if (!handleApiError(response, questionData)) {
-                alert('載入問題失敗：' + (questionData.message || questionData.error));
-            }
+            alert('載入問題失敗：' + (questionData.message || questionData.error));
         }
     }
 
@@ -456,14 +461,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function submitQuizAnswer(answer) {
-        const response = await fetch('/api/submit_quiz_answer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question_id: currentQuestionId, answer: answer })
-        });
-        const result = await response.json();
+        const result = await api.submitQuizAnswer(currentQuestionId, answer);
 
-        if (response.ok) {
+        if (result && result.hasOwnProperty('is_correct')) {
             showAnswerResult(result.is_correct, result.correct_answer);
             setTimeout(() => {
                 currentQuestionIndex++;
@@ -474,9 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 2000);
         } else {
-            if (!handleApiError(response, result)) {
-                alert('提交答案失敗：' + (result.message || result.error));
-            }
+            alert('提交答案失敗：' + (result.message || result.error));
         }
     }
 
@@ -500,21 +498,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function completeQuiz() {
-        const response = await fetch(`/api/complete_quiz/${currentQuizId}`, { method: 'POST' });
-        const result = await response.json();
-        if (response.ok) {
+        const result = await api.completeQuiz(currentQuizId);
+        if (result && result.quiz_id) {
             showQuizResults(result);
         } else {
-            if (!handleApiError(response, result)) {
-                alert('完成測驗失敗：' + (result.message || result.error));
-            }
+            alert('完成測驗失敗：' + (result.message || result.error));
         }
     }
 
     function showQuizResults(result) {
         const quizContainer = document.getElementById('quizContainer');
-        const completionTime = Math.floor((result.completion_time || 0) / 60);
-        
         quizContainer.innerHTML = `
             <div class="quiz-results">
                 <div class="results-header"><h2>${result.is_passed ? '🎉 測驗通過！' : '😔 測驗未通過'}</h2></div>
@@ -522,7 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="score-display"><div class="score-circle ${result.is_passed ? 'passed' : 'failed'}"><span class="score-percentage">${result.score_percentage}%</span></div></div>
                     <div class="results-details">
                         <p><strong>正確答題：</strong>${result.correct_answers} / ${result.total_questions}</p>
-                        <p><strong>完成時間：</strong>${completionTime} 分鐘</p>
                         <p><strong>通過標準：</strong>${result.pass_threshold}%</p>
                     </div>
                     ${result.is_passed ? '<div class="success-message"><p>恭喜！您已成功完成此單字本！</p></div>' : '<div class="retry-message"><p>請繼續努力，您可以重新學習後再次測驗。</p></div>'}

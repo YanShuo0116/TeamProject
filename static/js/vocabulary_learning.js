@@ -840,7 +840,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="results-details">
                         <p><strong>正確答題：</strong>${result.correct_answers} / ${result.total_questions}</p>
-                        <p><strong>完成時間：</strong>${completionTime} 分鐘</p>
                         <p><strong>通過標準：</strong>${result.pass_threshold}%</p>
                     </div>
                     ${result.is_passed ? 

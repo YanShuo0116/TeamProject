@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 from app import app, db
-from models import User, Vocabulary, SystemSetting, VocabularyProgress, LessonProgress, CustomVocabularyBook, CustomVocabulary
+from models import User, Vocabulary, SystemSetting, VocabularyProgress, LessonProgress, CustomVocabularyBook, CustomVocabulary, CustomQuizAttempt, CustomQuizQuestion
 
 # Constants
 DATABASE_FILE = 'learning_platform.db'

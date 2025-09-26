@@ -235,3 +235,33 @@ class SpeakingProgress(db.Model):
     
     # 關聯
     user = db.relationship('User', backref=db.backref('speaking_progress', lazy=True))
+
+# === New Models for Custom Quizzes ===
+class CustomQuizAttempt(db.Model):
+    __tablename__ = 'custom_quiz_attempts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('custom_vocabulary_books.id'), nullable=False)
+    total_questions = db.Column(db.Integer, nullable=False)
+    correct_answers = db.Column(db.Integer, nullable=False, default=0)
+    is_passed = db.Column(db.Boolean, nullable=False, default=False)
+    completion_time = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='in_progress')
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('custom_quiz_attempts', lazy=True))
+    book = db.relationship('CustomVocabularyBook', backref=db.backref('quiz_attempts', lazy=True))
+
+class CustomQuizQuestion(db.Model):
+    __tablename__ = 'custom_quiz_questions'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('custom_quiz_attempts.id'), nullable=False)
+    word_id = db.Column(db.Integer, db.ForeignKey('custom_vocabularies.id'), nullable=False)
+    question_type = db.Column(db.String(50), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=False, default=False)
+    answered_at = db.Column(db.DateTime, nullable=True)
+
+    attempt = db.relationship('CustomQuizAttempt', backref=db.backref('questions', lazy=True))
+    word = db.relationship('CustomVocabulary', backref=db.backref('quiz_questions', lazy=True))

@@ -624,7 +624,7 @@ def vocabulary_learning(category):
     # 目前只處理 '1200'，未來可以擴展
     return render_template('vocabulary_learning.html', category=category)
 
-from models import CustomVocabularyBook
+from models import CustomVocabularyBook, CustomQuizAttempt, CustomQuizQuestion
 @app.route("/custom_vocabulary", methods=["GET"])
 @login_required
 def custom_vocabulary():
@@ -755,7 +755,9 @@ def delete_custom_book(book_id):
     db.session.delete(book)
     db.session.commit()
     return jsonify({'success': True, 'message': '單字本已刪除'})
-    
+
+# --- Custom Vocabulary Quiz Routes ---
+
 @app.route("/api/custom_quiz/start/<int:book_id>", methods=["POST"])
 @login_required
 def start_custom_quiz(book_id):
@@ -765,57 +767,122 @@ def start_custom_quiz(book_id):
     if len(words) < 4:
         return jsonify({'error': '單字本至少需要4個單字才能開始測驗'}), 400
 
-    # 偽裝成一般課程以重用測驗邏輯
-    theme_name = "custom_book"
-    lesson_name = f"book_{book.id}"
-
-    # 放棄任何正在進行的相同測驗
-    existing_quizzes = QuizAttempt.query.filter_by(
-        user_id=current_user.id,
-        theme_name=theme_name,
-        lesson_name=lesson_name,
-        status='in_progress'
-    ).all()
+    existing_quizzes = CustomQuizAttempt.query.filter_by(user_id=current_user.id, book_id=book_id, status='in_progress').all()
     for quiz in existing_quizzes:
         quiz.status = 'abandoned'
         quiz.completed_at = datetime.now()
 
-    quiz_attempt = QuizAttempt(
-        user_id=current_user.id,
-        theme_name=theme_name,
-        lesson_name=lesson_name,
-        total_questions=len(words),
-        status='in_progress'
-    )
+    quiz_attempt = CustomQuizAttempt(user_id=current_user.id, book_id=book_id, total_questions=len(words), status='in_progress')
     db.session.add(quiz_attempt)
     db.session.flush()
 
-    # 為每個單字創建問題
     question_types = ['chinese_to_english', 'english_to_chinese', 'spelling']
     for word in words:
-        # 需要先將 CustomVocabulary 轉換為 Vocabulary
-        # 這裡我們直接在 QuizQuestion 中儲存 CustomVocabulary 的 ID
-        # 但 get_quiz_question 需要能處理這種情況
         question_type = random.choice(question_types)
-        
-        # 為了重用邏輯，我們需要一個 Vocabulary 實例
-        # 這裡我們假設 CustomVocabulary 的結構與 Vocabulary 相似
-        # 注意：這是一個簡化，理想情況下應該有更通用的測驗模型
-        vocab_entry = Vocabulary(id=word.id, word=word.english_word, chinese_translation=word.chinese_translation)
-
-        quiz_question = QuizQuestion(
-            attempt_id=quiz_attempt.id,
-            word_id=word.id, # 這裡儲存的是 CustomVocabulary 的 ID
-            question_type=question_type
-        )
+        quiz_question = CustomQuizQuestion(attempt_id=quiz_attempt.id, word_id=word.id, question_type=question_type)
         db.session.add(quiz_question)
+
+    db.session.commit()
+    return jsonify({'quiz_id': quiz_attempt.id, 'total_questions': len(words), 'message': '測驗已開始'})
+
+@app.route("/api/custom_quiz/get_question/<int:quiz_id>/<int:question_index>", methods=["GET"])
+@login_required
+def get_custom_quiz_question(quiz_id, question_index):
+    quiz_attempt = CustomQuizAttempt.query.filter_by(id=quiz_id, user_id=current_user.id).first_or_404()
+    questions = CustomQuizQuestion.query.filter_by(attempt_id=quiz_id).order_by(CustomQuizQuestion.id).all()
+
+    if question_index >= len(questions):
+        return jsonify({'error': 'Question index out of range'}), 400
+
+    current_question = questions[question_index]
+    word = current_question.word
+    
+    compatible_word = type('obj', (object,), {'id': word.id, 'word': word.english_word, 'chinese_translation': word.chinese_translation})()
+
+    question_data = {
+        'question_id': current_question.id,
+        'question_index': question_index,
+        'total_questions': len(questions),
+        'question_type': current_question.question_type,
+    }
+
+    if current_question.question_type == 'chinese_to_english':
+        question_data.update({
+            'question_text': compatible_word.chinese_translation,
+            'image_url': get_image_from_pexels(compatible_word.word),
+            'options': generate_english_options(compatible_word, 'custom_book', f'book_{quiz_attempt.book_id}'),
+            'correct_answer': compatible_word.word
+        })
+    elif current_question.question_type == 'english_to_chinese':
+        question_data.update({
+            'question_text': compatible_word.word,
+            'image_url': get_image_from_pexels(compatible_word.word),
+            'options': generate_chinese_options(compatible_word, 'custom_book', f'book_{quiz_attempt.book_id}'),
+            'correct_answer': compatible_word.chinese_translation
+        })
+    elif current_question.question_type == 'spelling':
+        question_data.update({
+            'question_text': compatible_word.chinese_translation,
+            'scrambled_letters': list(compatible_word.word.upper()),
+            'correct_answer': compatible_word.word.upper()
+        })
+        random.shuffle(question_data['scrambled_letters'])
+    
+    return jsonify(question_data)
+
+@app.route("/api/custom_quiz/submit_answer", methods=["POST"])
+@login_required
+def submit_custom_quiz_answer():
+    data = request.get_json()
+    question_id = data.get('question_id')
+    user_answer = data.get('answer')
+
+    question = db.session.get(CustomQuizQuestion, question_id)
+    if not question or question.attempt.user_id != current_user.id:
+        return jsonify({'error': 'Invalid question'}), 404
+
+    correct_answer = ""
+    if question.question_type == 'chinese_to_english':
+        correct_answer = question.word.english_word
+    elif question.question_type == 'english_to_chinese':
+        correct_answer = question.word.chinese_translation
+    elif question.question_type == 'spelling':
+        correct_answer = question.word.english_word.upper()
+
+    is_correct = (user_answer.strip().lower() == correct_answer.strip().lower())
+    question.user_answer = user_answer
+    question.is_correct = is_correct
+    question.answered_at = datetime.now()
+
+    if is_correct:
+        question.attempt.correct_answers += 1
+
+    db.session.commit()
+    return jsonify({'is_correct': is_correct, 'correct_answer': correct_answer})
+
+@app.route("/api/custom_quiz/complete/<int:quiz_id>", methods=["POST"])
+@login_required
+def complete_custom_quiz(quiz_id):
+    quiz_attempt = CustomQuizAttempt.query.filter_by(id=quiz_id, user_id=current_user.id).first_or_404()
+    if quiz_attempt.status == 'completed':
+        return jsonify({'error': 'Quiz already completed'}), 400
+
+    quiz_attempt.status = 'completed'
+    quiz_attempt.completed_at = datetime.now()
+
+    score_percentage = round((quiz_attempt.correct_answers / quiz_attempt.total_questions) * 100) if quiz_attempt.total_questions > 0 else 0
+    pass_threshold = 80
+    quiz_attempt.is_passed = score_percentage >= pass_threshold
 
     db.session.commit()
 
     return jsonify({
         'quiz_id': quiz_attempt.id,
-        'total_questions': len(words),
-        'message': '測驗已開始'
+        'score_percentage': score_percentage,
+        'is_passed': quiz_attempt.is_passed,
+        'correct_answers': quiz_attempt.correct_answers,
+        'total_questions': quiz_attempt.total_questions,
+        'pass_threshold': pass_threshold
     })
 
 
@@ -2210,81 +2277,38 @@ def submit_quiz_answer():
     })
 
 @app.route("/api/complete_quiz/<int:quiz_id>", methods=["POST"])
+@login_required
 def complete_quiz(quiz_id):
-    if not current_user.is_authenticated:
-        return jsonify({
-            'error': 'User not authenticated',
-            'message': '請登入帳號以完成測驗',
-            'redirect': '/login'
-        }), 401
-    
-    # 獲取測驗嘗試
-    quiz_attempt = QuizAttempt.query.filter_by(
-        id=quiz_id,
-        user_id=current_user.id
-    ).first()
-    
-    if not quiz_attempt:
-        return jsonify({'error': 'Quiz not found'}), 404
-    
-    # 檢查測驗狀態
-    if quiz_attempt.status != 'in_progress':
-        return jsonify({'error': 'Quiz is not in progress'}), 400
-    
-    # 計算正確答案數
-    correct_answers = QuizQuestion.query.filter_by(
-        attempt_id=quiz_id,
-        is_correct=True
-    ).count()
-    
-    total_questions = QuizQuestion.query.filter_by(attempt_id=quiz_id).count()
-    
-    # 計算完成時間
-    completion_time = int((datetime.now() - quiz_attempt.started_at).total_seconds())
-    
-    # 判斷是否通過（80%正確率）
-    pass_threshold = 0.8
-    is_passed = (correct_answers / total_questions) >= pass_threshold
-    
-    # 更新測驗記錄
-    quiz_attempt.correct_answers = correct_answers
-    quiz_attempt.is_passed = is_passed
-    quiz_attempt.completion_time = completion_time
+    quiz_attempt = QuizAttempt.query.filter_by(id=quiz_id, user_id=current_user.id).first_or_404()
+    if quiz_attempt.status == 'completed':
+        return jsonify({'error': 'Quiz already completed'}), 400
+
     quiz_attempt.status = 'completed'
     quiz_attempt.completed_at = datetime.now()
-    
-    # 只有通過測驗才更新課程進度為完成
-    if is_passed:
+
+    score_percentage = round((quiz_attempt.correct_answers / quiz_attempt.total_questions) * 100) if quiz_attempt.total_questions > 0 else 0
+    pass_threshold = 80
+    quiz_attempt.is_passed = score_percentage >= pass_threshold
+
+    if quiz_attempt.is_passed:
         lesson_progress = LessonProgress.query.filter_by(
             user_id=current_user.id,
             theme_name=quiz_attempt.theme_name,
             lesson_name=quiz_attempt.lesson_name
         ).first()
-        
         if lesson_progress:
             lesson_progress.is_completed = True
             lesson_progress.completion_date = datetime.now()
-    else:
-        # 如果測驗未通過，確保課程進度不被標記為完成
-        lesson_progress = LessonProgress.query.filter_by(
-            user_id=current_user.id,
-            theme_name=quiz_attempt.theme_name,
-            lesson_name=quiz_attempt.lesson_name
-        ).first()
-        
-        if lesson_progress:
-            lesson_progress.is_completed = False
-            lesson_progress.completion_date = None
-    
+
     db.session.commit()
-    
+
     return jsonify({
-        'is_passed': is_passed,
-        'correct_answers': correct_answers,
-        'total_questions': total_questions,
-        'score_percentage': round((correct_answers / total_questions) * 100, 1),
-        'completion_time': completion_time,
-        'pass_threshold': int(pass_threshold * 100)
+        'quiz_id': quiz_attempt.id,
+        'score_percentage': score_percentage,
+        'is_passed': quiz_attempt.is_passed,
+        'correct_answers': quiz_attempt.correct_answers,
+        'total_questions': quiz_attempt.total_questions,
+        'pass_threshold': pass_threshold
     })
 
 # 確保音檔目錄
