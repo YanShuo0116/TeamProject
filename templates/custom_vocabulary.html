@@ -69,11 +69,14 @@
             <!-- 單字本選擇區塊 -->
             <div id="bookSelectionSection">
                 <h1 class="page-title">我的單字本</h1>
-                <div class="create-book-form mb-4">
-                    <div class="input-group">
+                <div class="create-book-form mb-4 d-flex justify-content-center">
+                    <div class="input-group" style="max-width: 50%;">
                         <input type="text" id="newBookName" class="form-control" placeholder="輸入新單字本名稱...">
                         <button class="btn btn-primary" id="createBookBtn">
                             <i class="fas fa-plus"></i> 建立
+                        </button>
+                        <button class="btn btn-info ms-2" id="openAiGenerateModalBtn" style="background: linear-gradient(45deg, #2196f3, #e91e63); border: none;">
+                            <i class="fas fa-magic"></i> AI 生成單字本
                         </button>
                     </div>
                 </div>
@@ -81,6 +84,7 @@
                     <!-- 單字本卡片將由 JavaScript 動態生成 -->
                 </div>
             </div>
+                
             
             <!-- 單字卡片學習區塊 (預設隱藏) -->
             <div id="wordCardSection" style="display: none;">
@@ -146,6 +150,46 @@
         </div>
     </div>
 
+
+    <!-- AI 生成單字本 Modal -->
+    <div class="modal fade" id="aiGenerateModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-magic"></i> AI 生成單字本</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="aiBookName" class="form-label">新單字本名稱</label>
+                        <input type="text" class="form-control" id="aiBookName" placeholder="例如：新聞文章、課文重點...">
+                    </div>
+                    
+                    <nav>
+                        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                            <button class="nav-link active" id="nav-upload-tab" data-bs-toggle="tab" data-bs-target="#nav-upload" type="button" role="tab">上傳檔案</button>
+                            <button class="nav-link" id="nav-paste-tab" data-bs-toggle="tab" data-bs-target="#nav-paste" type="button" role="tab">貼上文字</button>
+                        </div>
+                    </nav>
+                    <div class="tab-content" id="nav-tabContent" style="padding: 1rem; border: 1px solid #495057; border-top: none; border-radius: 0 0 0.25rem 0.25rem;">
+                        <div class="tab-pane fade show active" id="nav-upload" role="tabpanel">
+                            <p class="text-muted small">支援 .txt 和 .pdf 檔案。</p>
+                            <input type="file" class="form-control" id="aiFileInputModal" accept=".txt,.pdf">
+                        </div>
+                        <div class="tab-pane fade" id="nav-paste" role="tabpanel">
+                            <textarea class="form-control" id="aiPastedText" rows="8" placeholder="將文字內容貼在此處..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmAiGenerateBtn">
+                        <i class="fas fa-cogs"></i> 開始生成
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>

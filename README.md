@@ -1,5 +1,27 @@
 # HTML試用初始版本 更新日期2025/7/10(陳衍碩)
 
+# 最新更新內容 (2025/09/26) - AI 單字本生成 & UI 優化
+
+## ✨ AI-Powered Vocabulary Generation
+
+### 核心功能
+- **🤖 一鍵生成單字本**: 在「自訂單字卡」頁面新增「AI 生成單字本」功能，點擊按鈕即可開啟。
+- **📝 多源輸入**: 支援 **上傳檔案**（`.txt`, `.pdf`）或直接 **貼上文字** 內容，提供靈活的單字來源。
+- **🧠 智能單字提取**: AI 會自動從提供的文本中分析並提取出 15 個最值得學習的關鍵單字及其翻譯。
+- **🏷️ 自動命名與建立**: 使用者可在彈出視窗中為新單字本命名，AI 生成後會自動建立對應的單字本及所有單字卡。
+
+### UI/UX 優化
+- **🎨 統一風格介面**: 採用彈出式視窗（Modal）進行操作，介面與網站整體的暗色系主題完美融合，提升了視覺一致性與使用者體驗。
+- **👆 直覺化操作**: 將複雜的功能整合到一個簡單的按鈕和彈出視窗中，從命名、提供內容到生成，流程清晰流暢。
+- **版面修正**: 調整了建立單字本的輸入框版面，使其更美觀協調。
+
+### 技術實現
+- **後端架構**: 建立了一個新的 API 端點 (`/api/custom_vocabulary/ai_generate`)，能夠處理多種來源類型（檔案、文字）的請求。
+- **前端邏輯**: 重構了 `custom_vocabulary.js`，使用 Bootstrap Modal 來管理互動流程，並透過 `fetch` API 與後端溝通。
+- **📄 PDF 處理**: 遵循專案既有規範，複用 `utils.py` 中的 `get_loader` 函式來處理 PDF 檔案，確保了程式碼的一致性與可維護性。
+
+---
+
 # 最新更新內容 (2025/09/26) - 新增自訂單字卡功能
 
 ## 🚀 Custom Vocabulary Feature v1.0
@@ -119,48 +141,52 @@ Press CTRL+C to quit
 
 
 
-# Folder部分
+# 檔案結構
 
-MY_PROJECT/
+my_project_v0.4/
 │
-├── app.py                # 主要程式：Flask 應用程式的入口點，負責路由、視圖函數、API 配置和應用程式初始化。
-├── models.py             # 資料庫模型：定義了所有資料庫表格的結構 (例如 User, LearningRecord 等)，並處理密碼加密。
-├── database_setup.py     # 資料庫初始化腳本：用於建立資料庫、資料表，並匯入初始數據 (例如預設管理員帳號和單字資料)。
-├── auth.py               # 身份驗證模組：處理使用者登入、註冊和登出邏輯，並管理使用者會話。
-├── admin.py              # 管理員模組：包含管理員專屬的路由和功能，例如顯示後台儀表板和統計數據。
-├── learning_platform.db  # SQLite 資料庫檔案：應用程式的資料庫文件。
-├── README.md             # 各種介紹
-├── audio_files           # 存放音檔
+├── 核心應用 (Core Application)/
+│   ├── app.py                # ✅ 主要程式：Flask 應用程式的入口點，負責路由、視圖函數、API 配置和應用程式初始化。
+│   ├── models.py             # ✅ 資料庫模型：定義了所有資料庫表格的結構 (例如 User, LearningRecord 等)，並處理密碼加密。
+│   ├── auth.py               # ✅ 身份驗證模組：處理使用者登入、註冊和登出邏輯，並管理使用者會話。
+│   ├── admin.py              # ✅ 管理員模組：包含管理員專屬的路由和功能，例如顯示後台儀表板和統計數據。
+│   └── config.py             # ✅ 應用程式配置：集中管理應用程式的設定。
 │
-├── static/               # 靜態文件（CSS、JS、圖像等）
-│   ├── css/
-│   │   ├── styles.css    
-│   │   ├── teach.css    
-│   │   ├── button.css   ＃特殊效果按鈕
-│   │   ├── composition.css 
-│   │   ├──translator.css
-│   │   ├──we.css
-│   │   ├── login_register.css # 登入/註冊頁面樣式
-│   │   └── admin.css          # 管理員後台樣式
-│   │
-│   ├── js/
-│   │   ├── scripts.js    
-│   │   ├── teach.js  
-│   │   ├── composition.js     
-│   │   ├──translator.js
-│   │   └──we.js
-│   └── images/           
+├── API 管理 (API Management)/
+│   ├── api_manager.py        # 🆕 API 管理器：負責調度多個 API 金鑰，實現負載平衡和錯誤自動切換。
+│   ├── api_key_manager.py    # 🆕 API 金鑰管理器：用於從 `api_keys.json` 安全地讀取和管理金鑰。
+│   ├── safe_gemini_llm.py    # 🆕 安全的 LLM 封裝：封裝 Gemini API 調用，整合 API 管理器的功能。
+│   ├── api_config.json       # 🆕 API 配置文件：儲存 API 相關的設定。
+│   └── api_keys.json         # 🆕 API 金鑰儲存：以安全的方式儲存多個 API 金鑰 (此檔案應被 .gitignore 排除)。
 │
-└── templates/            # HTML 模板
-    ├── index.html        # 主頁
-    ├── teach.html        # AI老師
-    ├── composition.html  # 英文作文助手
-    ├── translator.html   # 翻譯機
-    ├── we.html           # 自我介紹
-    ├── login.html        # 登入頁面
-    ├── register.html     # 註冊頁面
-    ├── admin_dashboard.html # 管理員後台儀表板
-    └── unauthorized.html # 未授權訪問頁面
+├── 功能模組 (Feature Modules)/
+│   ├── speaking_practice.py  # 🚀 口說練習模組：處理 AI 對話、語音識別和深度評估的核心邏輯。
+│   ├── qa_system.py          # 🔍 RAG 問答系統：整合 Langchain 與 ChromaDB，提供精準的問答功能。
+│   ├── voice.py              # 🗣️ 語音處理模組：負責文字轉語音 (TTS) 和語音檔案的處理。
+│   └── utils.py              # 🛠️ 共用工具函式：提供多個模組都會用到的輔助函式。
+│
+├── 資料庫與數據 (Database & Data)/
+│   ├── database_setup.py     # ✅ 資料庫初始化腳本：用於建立資料庫、資料表，並匯入初始數據。
+│   ├── database_manager.py   # 🆕 資料庫管理器：提供更高層級的資料庫操作封裝。
+│   ├── build_vector_db.py    # 🆕 向量資料庫建構：從 PDF、CSV 等文件建立 ChromaDB 向量索引。
+│   ├── learning_platform.db  # ✅ SQLite 資料庫檔案：應用程式的主要資料庫。
+│   ├── chroma_db/            # 🆕 ChromaDB 資料庫：存放 RAG 系統的向量索引。
+│   └── vector_db/            # 🆕 向量資料庫暫存區：存放不同資料來源的向量化資料。
+│
+├── 前端資源 (Frontend Resources)/
+│   ├── static/               # ✅ 靜態文件 (CSS, JS, 圖像)
+│   │   ├── css/              # ✅ 各頁面的 CSS 樣式表
+│   │   └── js/               # ✅ 各頁面的 JavaScript 邏輯 (包含 speaking_practice.js, custom_vocabulary.js 等)
+│   └── templates/            # ✅ HTML 模板
+│       ├── speaking_practice.html # 🚀 口說練習頁面
+│       ├── custom_vocabulary.html # 📚 自訂單字卡頁面
+│       └── ...               # ✅ 其他各功能頁面的 HTML 檔案
+│
+├── 其他 (Miscellaneous)/
+│   ├── requirements.txt      # ✅ Python 依賴包列表。
+│   ├── .gitignore            # ✅ Git 忽略設定，用於排除不需要版本控制的檔案 (如 venv, api_keys.json)。
+│   ├── README.md             # ✅ 專案說明文件 (就是你正在看的這個檔案)。
+│   └── 功能測試區/           # 🧪 用於存放開發過程中的測試腳本和原型。
 
 # 管理員後台使用說明
 

@@ -1,0 +1,9 @@
+def create_database():
+    """Creates the database and all tables."""
+    with app.app_context():
+        db.create_all()
+
+
+        apple
+
+        banana

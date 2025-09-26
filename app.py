@@ -5,6 +5,7 @@ from pyngrok import ngrok
 import traceback
 import time
 import json
+from utils import get_loader
 # === 輕量化多 API 管理器整合 ===
 from api_manager import SafeGenerativeModel, get_gemini_manager
 from gtts import gTTS
@@ -755,6 +756,111 @@ def delete_custom_book(book_id):
     db.session.delete(book)
     db.session.commit()
     return jsonify({'success': True, 'message': '單字本已刪除'})
+
+@app.route("/api/custom_vocabulary/ai_generate", methods=["POST"])
+@login_required
+def ai_generate_vocabulary():
+    """從上傳的檔案(txt, pdf)或貼上的文字中提取關鍵單字並創建新的單字本"""
+    temp_filepath = None # 初始化
+    try:
+        source_type = request.form.get('source_type')
+        book_name = request.form.get('book_name', '').strip()
+        content = ""
+
+        if not book_name:
+            return jsonify({'success': False, 'message': '單字本名稱不能為空'}), 400
+
+        if source_type == 'file':
+            if 'file' not in request.files:
+                return jsonify({'success': False, 'message': '沒有上傳檔案'}), 400
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'success': False, 'message': '沒有選擇檔案'}), 400
+            
+            # --- 使用 utils.py 中的 get_loader ---
+            temp_dir = "tmp_uploads"
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_filepath = os.path.join(temp_dir, file.filename)
+            file.save(temp_filepath)
+
+            loader = get_loader(temp_filepath)
+            documents = loader.load()
+            content = "\n".join([doc.page_content for doc in documents])
+
+        elif source_type == 'text':
+            content = request.form.get('text', '')
+        
+        else:
+            return jsonify({'success': False, 'message': '無效的來源類型'}), 400
+
+        if not content.strip():
+            return jsonify({'success': False, 'message': '來源內容不能為空'}), 400
+
+        # AI 提示
+        prompt = f"""
+        請從以下文字中，為英語學習者提取15個最重要且值得學習的關鍵英文單字。
+        對於每個單字，請提供其最常見的繁體中文翻譯。
+        請嚴格按照以下JSON格式輸出，不要包含任何額外的文字、解釋或代碼標記。
+        輸出格式為一個JSON陣列，其中每個物件包含 "english" 和 "chinese" 兩個鍵。
+
+        範例輸出:
+        [
+            {{"english": "important", "chinese": "重要的"}},
+            {{"english": "vocabulary", "chinese": "詞彙"}}
+        ]
+
+        要分析的文字內容如下(最多分析8000字元)：
+        ---
+        {content[:8000]}
+        ---
+        """
+
+        # 呼叫 AI
+        response = model.generate_content(prompt)
+        
+        # 清理並解析 AI 回應
+        cleaned_response = response.text.strip().replace('`', '').replace('json', '')
+        vocabulary_list = json.loads(cleaned_response)
+
+        if not isinstance(vocabulary_list, list) or not all('english' in item and 'chinese' in item for item in vocabulary_list):
+            raise ValueError("AI 回應格式不正確")
+
+        # 創建新的單字本
+        new_book = CustomVocabularyBook(name=book_name, user_id=current_user.id)
+        db.session.add(new_book)
+        db.session.flush()  # 獲取 new_book.id
+
+        # 將單字加入資料庫
+        for item in vocabulary_list:
+            new_word = CustomVocabulary(
+                english_word=item['english'].strip(),
+                chinese_translation=item['chinese'].strip(),
+                user_id=current_user.id,
+                book_id=new_book.id
+            )
+            db.session.add(new_word)
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': '成功生成單字卡',
+            'book_id': new_book.id,
+            'book_name': new_book.name,
+            'word_count': len(vocabulary_list)
+        })
+
+    except json.JSONDecodeError:
+        return jsonify({'success': False, 'message': 'AI 回應格式錯誤，無法解析JSON。請再試一次。'}), 500
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in ai_generate_vocabulary: {e}")
+        return jsonify({'success': False, 'message': f'處理時發生錯誤: {str(e)}'}), 500
+    finally:
+        # 清理臨時檔案
+        if temp_filepath and os.path.exists(temp_filepath):
+            os.remove(temp_filepath)
+
 
 # --- Custom Vocabulary Quiz Routes ---
 

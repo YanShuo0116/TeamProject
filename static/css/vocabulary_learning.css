@@ -1586,3 +1586,69 @@ body.dark-mode {
 .loading-spinner p {
     display: none;
 }
+
+/* AI Generate Modal Dark Theme */
+#aiGenerateModal .modal-content {
+    background-color: var(--card-bg-dark);
+    color: var(--text-light);
+    border: 1px solid #495057;
+    border-radius: 15px;
+}
+
+#aiGenerateModal .modal-header {
+    border-bottom: 1px solid #495057;
+}
+
+#aiGenerateModal .modal-footer {
+    border-top: 1px solid #495057;
+}
+
+#aiGenerateModal .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+#aiGenerateModal .form-label {
+    color: var(--text-light);
+}
+
+#aiGenerateModal .form-control {
+    background-color: #2a2a2a;
+    border-color: #555;
+    color: var(--text-light);
+}
+
+#aiGenerateModal .form-control:focus {
+    background-color: #2a2a2a;
+    border-color: var(--primary-color);
+    color: var(--text-light);
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+}
+
+#aiGenerateModal .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    opacity: 1;
+}
+
+#aiGenerateModal .text-muted {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+#aiGenerateModal .nav-tabs {
+    border-bottom-color: #495057;
+}
+
+#aiGenerateModal .nav-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.6);
+    background-color: transparent;
+    border-color: transparent transparent #495057;
+}
+
+#aiGenerateModal .nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background-color: var(--card-bg-dark);
+    border-color: #495057 #495057 var(--card-bg-dark);
+}
+
+#aiGenerateModal .tab-content {
+    border-color: #495057;
+}

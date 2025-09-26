@@ -30,6 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const englishWordInput = document.getElementById('englishWordInput');
     const chineseWordInput = document.getElementById('chineseWordInput');
 
+    // AI Generate Modal
+    const aiGenerateModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
+    const openAiGenerateModalBtn = document.getElementById('openAiGenerateModalBtn');
+    const confirmAiGenerateBtn = document.getElementById('confirmAiGenerateBtn');
+    const aiBookNameInput = document.getElementById('aiBookName');
+    const aiFileInput = document.getElementById('aiFileInputModal');
+    const aiPastedTextInput = document.getElementById('aiPastedText');
+    const uploadTab = document.getElementById('nav-upload-tab');
+
     // State
     let state = {
         books: [],
@@ -54,6 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({ book_id: bookId, english, chinese })
         }).then(res => res.json()),
         deleteWord: (wordId) => fetch(`/api/custom_vocabulary/delete_word/${wordId}`, { method: 'DELETE' }).then(res => res.json()),
+        generateFromSource: (formData) => fetch('/api/custom_vocabulary/ai_generate', {
+            method: 'POST',
+            body: formData
+        }),
         // Updated Quiz API endpoints
         startQuiz: (bookId) => fetch(`/api/custom_quiz/start/${bookId}`, { method: 'POST' }).then(res => res.json()),
         getQuizQuestion: (quizId, index) => fetch(`/api/custom_quiz/get_question/${quizId}/${index}`).then(res => res.json()),
@@ -576,6 +589,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Event Listeners ---
+    openAiGenerateModalBtn.addEventListener('click', () => {
+        // Clear previous inputs
+        aiBookNameInput.value = '';
+        aiFileInput.value = '';
+        aiPastedTextInput.value = '';
+        aiGenerateModal.show();
+    });
+
+    confirmAiGenerateBtn.addEventListener('click', async () => {
+        const bookName = aiBookNameInput.value.trim();
+        if (!bookName) {
+            alert('請為新的單字本命名。');
+            return;
+        }
+
+        const isUpload = uploadTab.classList.contains('active');
+        const file = aiFileInput.files[0];
+        const text = aiPastedTextInput.value.trim();
+
+        if (isUpload && !file) {
+            alert('請選擇要上傳的檔案。');
+            return;
+        }
+
+        if (!isUpload && !text) {
+            alert('請貼上文字內容。');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('book_name', bookName);
+        if (isUpload) {
+            formData.append('source_type', 'file');
+            formData.append('file', file);
+        } else {
+            formData.append('source_type', 'text');
+            formData.append('text', text);
+        }
+
+        showLoading(true);
+        aiGenerateModal.hide();
+
+        try {
+            const response = await api.generateFromSource(formData);
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert(`成功生成單字本 "${result.book_name}"，共新增 ${result.word_count} 個單字！`);
+                await loadBooks();
+                handleViewBook(result.book_id);
+            } else {
+                throw new Error(result.message || '生成失敗');
+            }
+        } catch (error) {
+            console.error('Error generating cards:', error);
+            alert(`生成失敗： ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
+    });
     createBookBtn.addEventListener('click', handleCreateBook);
     newBookNameInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleCreateBook();
