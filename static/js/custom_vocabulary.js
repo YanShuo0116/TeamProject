@@ -600,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmAiGenerateBtn.addEventListener('click', async () => {
         const bookName = aiBookNameInput.value.trim();
         if (!bookName) {
-            showError('請為新的單字本命名。');
+            alert('尚未取單字本名稱，請先輸入單字本名稱');
             return;
         }
 

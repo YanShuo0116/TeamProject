@@ -163,6 +163,9 @@
                     <div class="mb-3">
                         <label for="aiBookName" class="form-label">新單字本名稱</label>
                         <input type="text" class="form-control" id="aiBookName" placeholder="例如：新聞文章、課文重點...">
+                        <div class="form-text text-info">
+                            <i class="fas fa-info-circle"></i> AI 將根據內容豐富度生成 5-15 個適合的單字，不會強制湊滿 15 個
+                        </div>
                     </div>
                     
                     <nav>
@@ -173,10 +176,15 @@
                     </nav>
                     <div class="tab-content" id="nav-tabContent" style="padding: 1rem; border: 1px solid #495057; border-top: none; border-radius: 0 0 0.25rem 0.25rem;">
                         <div class="tab-pane fade show active" id="nav-upload" role="tabpanel">
-                            <p class="text-muted small">支援 .txt 和 .pdf 檔案。</p>
+                            <p class="text-muted small">
+                                支援 .txt 和 .pdf 檔案。AI 會分析內容並提取 5-15 個適合的英文單字。
+                            </p>
                             <input type="file" class="form-control" id="aiFileInputModal" accept=".txt,.pdf">
                         </div>
                         <div class="tab-pane fade" id="nav-paste" role="tabpanel">
+                            <p class="text-muted small">
+                                貼上任何英文文章、新聞或課文內容，AI 會自動提取重要單字。
+                            </p>
                             <textarea class="form-control" id="aiPastedText" rows="8" placeholder="將文字內容貼在此處..."></textarea>
                         </div>
                     </div>
