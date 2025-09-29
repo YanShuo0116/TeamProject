@@ -600,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmAiGenerateBtn.addEventListener('click', async () => {
         const bookName = aiBookNameInput.value.trim();
         if (!bookName) {
-            alert('請為新的單字本命名。');
+            showError('請為新的單字本命名。');
             return;
         }
 
@@ -609,12 +609,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = aiPastedTextInput.value.trim();
 
         if (isUpload && !file) {
-            alert('請選擇要上傳的檔案。');
+            showError('請選擇要上傳的檔案。');
             return;
         }
 
         if (!isUpload && !text) {
-            alert('請貼上文字內容。');
+            showError('請貼上文字內容。');
             return;
         }
 
@@ -636,15 +636,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (response.ok && result.success) {
-                alert(`成功生成單字本 "${result.book_name}"，共新增 ${result.word_count} 個單字！`);
+                showSuccessToast(`成功生成單字本 "${result.book_name}"，共新增 ${result.word_count} 個單字！`);
                 await loadBooks();
                 handleViewBook(result.book_id);
             } else {
-                throw new Error(result.message || '生成失敗');
+                // 對失敗使用新的 modal
+                showErrorModal(result.message || '生成失敗，伺服器未提供詳細錯誤訊息。');
             }
         } catch (error) {
             console.error('Error generating cards:', error);
-            alert(`生成失敗： ${error.message}`);
+            showErrorModal(`生成失敗： ${error.message}`);
         } finally {
             showLoading(false);
         }

@@ -149,3 +149,4 @@ Thumbs.db
 /uploads/
 /audio_files/
 /vector_db/
+instance/learning_platform.db

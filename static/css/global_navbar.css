@@ -271,3 +271,61 @@ html {
         transform: translateY(0);
     }
 }
+
+/* --- 全域成功提示 (Toast) 樣式 --- */
+#toast-container {
+    position: fixed;
+    top: 80px; /* 導航欄下方 */
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: none; /* 允許點擊穿透容器 */
+}
+
+.toast-message {
+    background-color: #343a40; /* 深色背景 */
+    color: #f8f9fa; /* 亮色文字 */
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 5px solid #28a745; /* 綠色成功標示 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    pointer-events: auto; /* 恢復 toast 的點擊事件 */
+    animation: slideInRight 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards, fadeOut 0.5s 3.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.toast-message::before {
+    content: '\f058'; /* Font Awesome check-circle icon */
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands";
+    font-weight: 900;
+    color: #28a745;
+    margin-right: 15px;
+    font-size: 1.2rem;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}

@@ -210,7 +210,7 @@ class SpeakingPractice {
     async startTopic(topicId, topicTitle) {
         // 檢查是否選擇了難度等級
         if (!this.currentLevel) {
-            alert('請先選擇CEFR難度等級');
+            showErrorModal('請先選擇CEFR難度等級');
             return;
         }
 
@@ -246,7 +246,7 @@ class SpeakingPractice {
                 
             } else if (data.redirect) {
                 // 需要登入
-                alert(data.message);
+                showErrorModal(data.message);
                 window.location.href = data.redirect;
             } else {
                 throw new Error(data.error || '開始會話失敗');
@@ -254,7 +254,7 @@ class SpeakingPractice {
             
         } catch (error) {
             console.error('開始練習失敗:', error);
-            alert(`開始練習失敗: ${error.message}`);
+            showErrorModal(`開始練習失敗: ${error.message}`);
         } finally {
             this.showLoading(false);
         }
@@ -263,12 +263,12 @@ class SpeakingPractice {
     async startCustomPractice() {
         const topicTitle = document.getElementById('customTopicInput').value.trim();
         if (!topicTitle) {
-            alert('請輸入自訂主題');
+            showErrorModal('請輸入自訂主題');
             return;
         }
 
         if (!this.currentLevel) {
-            alert('請先選擇CEFR難度等級');
+            showErrorModal('請先選擇CEFR難度等級');
             return;
         }
 
@@ -300,7 +300,7 @@ class SpeakingPractice {
                 this.generateFirstQuestion();
                 
             } else if (data.redirect) {
-                alert(data.message);
+                showErrorModal(data.message);
                 window.location.href = data.redirect;
             } else {
                 throw new Error(data.error || '開始會話失敗');
@@ -308,7 +308,7 @@ class SpeakingPractice {
             
         } catch (error) {
             console.error('開始自訂練習失敗:', error);
-            alert(`開始自訂練習失敗: ${error.message}`);
+            showErrorModal(`開始自訂練習失敗: ${error.message}`);
         } finally {
             this.showLoading(false);
         }
@@ -411,7 +411,7 @@ class SpeakingPractice {
                 console.log('問題生成成功:', questionData);
                 
             } else if (data.redirect) {
-                alert(data.message);
+                showErrorModal(data.message);
                 window.location.href = data.redirect;
             } else {
                 throw new Error(data.error || '生成問題失敗');
@@ -606,7 +606,7 @@ class SpeakingPractice {
                 message = `麥克風錯誤: ${error.message}`;
         }
         
-        alert(message);
+        showErrorModal(message);
     }
 
     startRecording() {
@@ -639,7 +639,7 @@ class SpeakingPractice {
 
             this.mediaRecorder.onerror = (event) => {
                 console.error('錄音錯誤:', event.error);
-                alert('錄音發生錯誤，請重試');
+                showErrorModal('錄音發生錯誤，請重試');
                 this.resetRecordingUI();
             };
 

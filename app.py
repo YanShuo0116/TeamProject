@@ -5,9 +5,12 @@ from pyngrok import ngrok
 import traceback
 import time
 import json
+import tempfile
 from utils import get_loader
 # === 輕量化多 API 管理器整合 ===
 from api_manager import SafeGenerativeModel, get_gemini_manager
+# === RAG 單字提取模組 ===
+from rag_vocabulary_extractor import extract_vocabulary_with_rag
 from gtts import gTTS
 import os
 import threading
@@ -760,8 +763,8 @@ def delete_custom_book(book_id):
 @app.route("/api/custom_vocabulary/ai_generate", methods=["POST"])
 @login_required
 def ai_generate_vocabulary():
-    """從上傳的檔案(txt, pdf)或貼上的文字中提取關鍵單字並創建新的單字本"""
-    temp_filepath = None # 初始化
+    """從上傳的檔案(txt, pdf)或貼上的文字中，使用RAG技術提取關鍵單字並創建新的單字本"""
+    temp_filepath = None
     try:
         source_type = request.form.get('source_type')
         book_name = request.form.get('book_name', '').strip()
@@ -770,6 +773,9 @@ def ai_generate_vocabulary():
         if not book_name:
             return jsonify({'success': False, 'message': '單字本名稱不能為空'}), 400
 
+        temp_dir = "tmp_uploads"
+        os.makedirs(temp_dir, exist_ok=True)
+
         if source_type == 'file':
             if 'file' not in request.files:
                 return jsonify({'success': False, 'message': '沒有上傳檔案'}), 400
@@ -777,53 +783,32 @@ def ai_generate_vocabulary():
             if file.filename == '':
                 return jsonify({'success': False, 'message': '沒有選擇檔案'}), 400
             
-            # --- 使用 utils.py 中的 get_loader ---
-            temp_dir = "tmp_uploads"
-            os.makedirs(temp_dir, exist_ok=True)
             temp_filepath = os.path.join(temp_dir, file.filename)
             file.save(temp_filepath)
 
-            loader = get_loader(temp_filepath)
-            documents = loader.load()
-            content = "\n".join([doc.page_content for doc in documents])
-
         elif source_type == 'text':
             content = request.form.get('text', '')
+            if not content.strip():
+                return jsonify({'success': False, 'message': '來源內容不能為空'}), 400
+            
+            # 為純文字內容創建一個臨時檔案
+            with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=temp_dir, suffix=".txt", encoding='utf-8') as temp_f:
+                temp_filepath = temp_f.name
+                temp_f.write(content)
         
         else:
             return jsonify({'success': False, 'message': '無效的來源類型'}), 400
 
-        if not content.strip():
-            return jsonify({'success': False, 'message': '來源內容不能為空'}), 400
+        if not temp_filepath:
+            return jsonify({'success': False, 'message': '無法處理來源內容'}), 500
 
-        # AI 提示
-        prompt = f"""
-        請從以下文字中，為英語學習者提取15個最重要且值得學習的關鍵英文單字。
-        對於每個單字，請提供其最常見的繁體中文翻譯。
-        請嚴格按照以下JSON格式輸出，不要包含任何額外的文字、解釋或代碼標記。
-        輸出格式為一個JSON陣列，其中每個物件包含 "english" 和 "chinese" 兩個鍵。
+        # --- 使用新的 RAG 模組提取單字 ---
+        print(f"[RAG] 開始從 {temp_filepath} 提取單字...")
+        vocabulary_list = extract_vocabulary_with_rag(temp_filepath)
+        print(f"[RAG] 提取完成，共 {len(vocabulary_list)} 個單字。")
 
-        範例輸出:
-        [
-            {{"english": "important", "chinese": "重要的"}},
-            {{"english": "vocabulary", "chinese": "詞彙"}}
-        ]
-
-        要分析的文字內容如下(最多分析8000字元)：
-        ---
-        {content[:8000]}
-        ---
-        """
-
-        # 呼叫 AI
-        response = model.generate_content(prompt)
-        
-        # 清理並解析 AI 回應
-        cleaned_response = response.text.strip().replace('`', '').replace('json', '')
-        vocabulary_list = json.loads(cleaned_response)
-
-        if not isinstance(vocabulary_list, list) or not all('english' in item and 'chinese' in item for item in vocabulary_list):
-            raise ValueError("AI 回應格式不正確")
+        if not vocabulary_list:
+            return jsonify({'success': False, 'message': 'AI 無法從您的文件中提取出有效的單字，請嘗試不同的內容。'}), 500
 
         # 創建新的單字本
         new_book = CustomVocabularyBook(name=book_name, user_id=current_user.id)
@@ -832,14 +817,18 @@ def ai_generate_vocabulary():
 
         # 將單字加入資料庫
         for item in vocabulary_list:
-            new_word = CustomVocabulary(
-                english_word=item['english'].strip(),
-                chinese_translation=item['chinese'].strip(),
-                user_id=current_user.id,
-                book_id=new_book.id
-            )
-            db.session.add(new_word)
-        
+            # 確保 item 是字典且包含所需鍵值
+            if isinstance(item, dict) and 'word' in item and 'translation' in item:
+                new_word = CustomVocabulary(
+                    english_word=item['word'].strip(),
+                    chinese_translation=item['translation'].strip(),
+                    user_id=current_user.id,
+                    book_id=new_book.id
+                )
+                db.session.add(new_word)
+            else:
+                print(f"[Warning] RAG模組返回了無效的項目格式: {item}")
+
         db.session.commit()
 
         return jsonify({
@@ -850,16 +839,22 @@ def ai_generate_vocabulary():
             'word_count': len(vocabulary_list)
         })
 
-    except json.JSONDecodeError:
-        return jsonify({'success': False, 'message': 'AI 回應格式錯誤，無法解析JSON。請再試一次。'}), 500
     except Exception as e:
         db.session.rollback()
         print(f"Error in ai_generate_vocabulary: {e}")
-        return jsonify({'success': False, 'message': f'處理時發生錯誤: {str(e)}'}), 500
+        # 提高錯誤訊息的可讀性
+        error_message = str(e)
+        if "unsupported file format" in error_message.lower():
+            error_message = "不支援的檔案格式，請上傳 .txt 或 .pdf 檔案。"
+        elif "AI 回應格式錯誤" in error_message or "JSONDecodeError" in error_message:
+            error_message = "AI 回應格式錯誤，請稍後再試。"
+        
+        return jsonify({'success': False, 'message': f'處理時發生錯誤: {error_message}'}), 500
     finally:
         # 清理臨時檔案
         if temp_filepath and os.path.exists(temp_filepath):
             os.remove(temp_filepath)
+            print(f"已清理臨時檔案: {temp_filepath}")
 
 
 # --- Custom Vocabulary Quiz Routes ---

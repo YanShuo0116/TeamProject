@@ -178,3 +178,90 @@ function initNavbarSearch() {
 // 導出函數供其他腳本使用
 window.setActiveNavItem = setActiveNavItem;
 window.animateNavbarItems = animateNavbarItems;
+
+/**
+ * 顯示一個全域的成功提示訊息 (Toast)
+ * @param {string} message 要顯示的訊息
+ */
+function showSuccessToast(message) {
+    // 檢查容器是否存在，若否則建立一個
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    // 建立 toast 元素
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.textContent = message;
+
+    // 加入到容器中
+    container.appendChild(toast);
+
+    // 動畫結束後自動移除元素
+    toast.addEventListener('animationend', (e) => {
+        // 確保是 fadeOut 動畫結束
+        if (e.animationName === 'fadeOut') {
+            toast.remove();
+            // 如果容器空了，也可以選擇移除容器
+            if (container.children.length === 0) {
+                container.remove();
+            }
+        }
+    });
+}
+
+// 將新函式也掛到 window 上，確保全域可訪問
+window.showSuccessToast = showSuccessToast;
+
+/**
+ * 顯示一個全域的錯誤提示 Modal
+ * @param {string} message 要顯示的錯誤訊息
+ */
+function showErrorModal(message) {
+    // 移除已存在的 Modal，避免重複
+    const existingModal = document.getElementById('globalErrorModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 動態建立 Modal 的 HTML
+    const modalHTML = `
+        <div class="modal fade" id="globalErrorModal" tabindex="-1" aria-labelledby="globalErrorModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-white border-danger">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger" id="globalErrorModalLabel">
+                            <i class="fas fa-exclamation-triangle"></i> 操作失敗
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 將 Modal HTML 注入到 body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // 獲取並顯示 Modal
+    const errorModalElement = document.getElementById('globalErrorModal');
+    const modal = new bootstrap.Modal(errorModalElement);
+    modal.show();
+
+    // 在 Modal 關閉後自動從 DOM 中移除，保持頁面乾淨
+    errorModalElement.addEventListener('hidden.bs.modal', function () {
+        errorModalElement.remove();
+    });
+}
+
+// 將錯誤 Modal 函式也掛到 window 上
+window.showErrorModal = showErrorModal;
