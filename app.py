@@ -1,7 +1,6 @@
 #語音小BUG 再次生成不會覆蓋
 from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for, flash, session
 from flask_login import LoginManager, current_user, login_required
-from pyngrok import ngrok
 import traceback
 import time
 import json
@@ -61,11 +60,9 @@ from langchain_community.vectorstores import Chroma # Updated import
 lock = threading.Lock()
 # 移除全域變數 Us_uk，改用資料庫儲存用戶偏好
 
-# 配置API                                                                            #README.MD裡有網址
-ngrok.set_auth_token("2ywXahUIQ4BEQlBrwDT4DZ5B7xg_2B3tbiXUwG9YS9oqgcfxm")     # 替換為你的 ngrok 金鑰!!!!!!!!!!!!
 # API 金鑰現在由 api_manager.py 管理，支援多金鑰負載平衡
 
-PEXELS_API_KEY = "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr" # 替換為你的 Pexels API 金鑰
+PEXELS_API_KEY = os.getenv('PEXELS_API_KEY', "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr") # 從環境變數讀取
 pexels_api = Pexels(PEXELS_API_KEY)
 
 #選擇模型 - 使用安全的多 API 管理器
@@ -74,7 +71,7 @@ model = SafeGenerativeModel()
 # 建立 Flask 
 app = Flask(__name__)
 CORS(app)
-app.config['SECRET_KEY'] = 'your_secret_key'  # 更換為一個安全的密鑰
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_secret_key')  # 從環境變數讀取
 
 # 設定資料庫
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///learning_platform.db'
@@ -3043,10 +3040,7 @@ def delete_composition(composition_id):
         return jsonify({'success': False, 'error': '刪除失敗'})
 
 
-def start_ngrok():
-    public_url = ngrok.connect(8000)  # 指向 Flask 的埠號
-    print(f"公開 URL: {public_url}")
-    return public_url
+# ngrok function removed for Render deployment
 
 def preload_common_resources():
     """背景預載入常用單字的圖片和音檔"""
@@ -3290,12 +3284,8 @@ if __name__ == "__main__":
     # 啟動背景預載入
     preload_common_resources()
     
-    # 嘗試啟動 ngrok（如果失敗就跳過）
-    try:
-        start_ngrok()
-    except Exception as e:
-        print(f"⚠️ ngrok 啟動失敗（可能已有其他會話運行）: {e}")
-        print("📱 應用將在本地運行，請使用 http://localhost:8000")
+    # Render deployment - no ngrok needed
+    print("🚀 應用已啟動，準備接受請求")
     
     # 啟動定時清理任務
     import threading
@@ -3310,5 +3300,6 @@ if __name__ == "__main__":
     cleanup_thread.daemon = True
     cleanup_thread.start()
 
-    # 啟動 Flask
-    app.run(host='0.0.0.0', port=8000)
+    # 啟動 Flask - 支援 Render 部署
+    port = int(os.getenv('PORT', 8000))
+    app.run(host='0.0.0.0', port=port)
