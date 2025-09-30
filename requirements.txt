@@ -19,3 +19,4 @@ assemblyai==0.42.0
 pydub==0.25.1
 # pexels-api-py is not in the freeze list, keeping it as is
 pexels-api-py==0.0.5
+langchain-huggingface
