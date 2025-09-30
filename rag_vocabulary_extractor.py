@@ -75,7 +75,8 @@ def extract_vocabulary_with_rag(file_path: str) -> list[dict]:
 
         prompt = f"""
         You are an expert English teacher assisting a student learning English.
-        Based ONLY on the key passages provided below, identify the 15 most suitable vocabulary words for an English language learner.
+        Based ONLY on the key passages provided below, identify the most suitable vocabulary words for an English language learner.
+        Extract between 5-15 words depending on the content richness. Do not force exactly 15 words if the content doesn't contain enough suitable vocabulary.
         For each word, provide its traditional Chinese translation.
 
         Key Passages:
@@ -85,6 +86,7 @@ def extract_vocabulary_with_rag(file_path: str) -> list[dict]:
 
         Your response MUST be a valid JSON array of objects. Each object must have a 'word' and a 'translation' key.
         Do not include any text outside of the JSON array.
+        Do not repeat words or create duplicate entries.
 
         Example format:
         [
