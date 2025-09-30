@@ -1,3 +1,7 @@
+簡易DEMO
+https://smart-abc.onrender.com/
+
+
 # RAG 技術應用分析
 
 本專案的核心功能之一是整合了 **RAG (Retrieval-Augmented Generation)** 技術，主要應用於**「教材練習」**相關的問答系統，而非「自訂單字卡」功能。
