@@ -1,7 +1,7 @@
 #語音小BUG 再次生成不會覆蓋
-from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for, flash, session
+from flask import Flask, request, render_template, send_file, jsonify, redirect, url_for, flash, session, send_from_directory
 from flask_login import LoginManager, current_user, login_required
-from pyngrok import ngrok
+
 import traceback
 import time
 import json
@@ -62,7 +62,7 @@ lock = threading.Lock()
 # 移除全域變數 Us_uk，改用資料庫儲存用戶偏好
 
 # 配置API                                                                            #README.MD裡有網址
-ngrok.set_auth_token("2ywXahUIQ4BEQlBrwDT4DZ5B7xg_2B3tbiXUwG9YS9oqgcfxm")     # 替換為你的 ngrok 金鑰!!!!!!!!!!!!
+
 # API 金鑰現在由 api_manager.py 管理，支援多金鑰負載平衡
 
 PEXELS_API_KEY = "6mWeoatNXVXQ6seEFFQwvLmxUms72OENEc1utnp0aCa9g0sqbM2V9ybr" # 替換為你的 Pexels API 金鑰
@@ -994,7 +994,7 @@ def voice():
 
 @app.route("/voice/upload", methods=["POST"])
 def voice_upload():
-    """語音評測上傳處理"""
+    """語音評測上傳處理，並返回可播放的 URL"""
     try:
         audio = request.files.get("audio")
         reference = request.form.get("reference", "").strip().lower()
@@ -1003,22 +1003,21 @@ def voice_upload():
             return jsonify({"error": "未收到音訊檔"}), 400
 
         from werkzeug.utils import secure_filename
-        filename = secure_filename(audio.filename)
+        # 使用更唯一的檔案名稱，避免衝突
+        filename = f"voice_eval_{int(time.time())}_{secure_filename(audio.filename)}"
         
-        # 確保上傳目錄存在
         upload_folder = "uploads"
         os.makedirs(upload_folder, exist_ok=True)
         
         filepath = os.path.join(upload_folder, filename)
         audio.save(filepath)
 
-        # 使用現有的語音轉文字功能
         transcription_result = speech_to_text(filepath)
         
         if transcription_result.get('success'):
             predicted_text = transcription_result.get('text', '').strip().lower()
             
-            # 計算相似度
+            # 舊的相似度計算 (保留參考)
             try:
                 import Levenshtein
                 similarity = Levenshtein.ratio(reference, predicted_text)
@@ -1026,11 +1025,12 @@ def voice_upload():
                 similarity = 1.0 if reference == predicted_text else 0.0
 
             return jsonify({
+                "success": True,
                 "reference": reference,
                 "transcribed": predicted_text,
-                "similarity": round(similarity, 2),
-                "match": similarity >= 0.3,
-                "audio_url": f"/uploads/{filename}?t={int(time.time())}"
+                "similarity": round(similarity, 2), # 舊的評分
+                "match": similarity >= 0.3, # 舊的評分
+                "audio_url": url_for('uploaded_file', filename=filename) # 使用 url_for 產生正確的 URL
             })
         else:
             return jsonify({
@@ -1039,6 +1039,48 @@ def voice_upload():
             
     except Exception as e:
         return jsonify({"error": f"處理失敗: {str(e)}"}), 500
+
+@app.route("/api/voice/evaluate", methods=["POST"])
+def evaluate_voice_ai():
+    """使用 AI 進行語意評估"""
+    data = request.get_json()
+    reference_text = data.get('reference')
+    user_text = data.get('transcribed')
+
+    if not reference_text or not user_text:
+        return jsonify({"success": False, "error": "缺少評估所需文本"}), 400
+
+    try:
+        prompt = f"""你是一位專業的英文語音老師。請針對學生說的句子，基於參考答案進行評估。
+        請嚴格遵循以下 JSON 格式輸出，不要有任何額外的文字。
+
+        參考答案: "{reference_text}"
+        學生說的: "{user_text}"
+
+        JSON 輸出格式:
+        {{
+            "score": <一個1到100的整數分數>,
+            "is_correct": <布林值，語意上是否正確>,
+            "feedback": "(一句話的中文總體回饋)",
+            "suggestion": "(一句話的中文改進建議)",
+            "improved_answer": "(提供一個更好的英文說法)"
+        }}
+        """
+        
+        response = model.generate_content(prompt).text
+        # 清理並解析 AI 回應
+        import re
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if not json_match:
+            raise ValueError("AI 回應格式不符")
+
+        ai_result = json.loads(json_match.group())
+        return jsonify({"success": True, "evaluation": ai_result})
+
+    except Exception as e:
+        print(f"AI evaluation error: {e}")
+        return jsonify({"success": False, "error": f"AI 評估失敗: {e}"}), 500
+
 
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
@@ -1293,60 +1335,29 @@ def process_speaking_audio():
         }), 500
 
 def speech_to_text(audio_file_path):
-    """使用 AssemblyAI 的語音轉文字功能"""
-    print(f"🎤 開始識別語音檔案: {audio_file_path}")
+    """使用新的 Assembly_api_manager 進行語音轉文字"""
+    print(f"🎤 開始使用 AssemblyAIManager 識別語音檔案: {audio_file_path}")
     
-    # 檢查檔案是否存在
     if not os.path.exists(audio_file_path):
-        return {
-            'success': False,
-            'error': '音檔不存在'
-        }
-    
+        return {'success': False, 'error': '音檔不存在'}
+
     try:
-        import assemblyai as aai
-        
-        # 設定 AssemblyAI API 金鑰
-        aai.settings.api_key = "762720be7ecd483db291ce36c2c92496"
-        
-        # 配置轉錄設定
-        config = aai.TranscriptionConfig(
-            speech_model=aai.SpeechModel.best,  # 使用最佳模型
-            language_code="en",  # 英文識別
-            punctuate=True,  # 自動標點符號
-            format_text=True,  # 格式化文字
-            dual_channel=False,  # 單聲道
-            speaker_labels=False,  # 不需要說話者標籤
-            auto_highlights=False,  # 不需要重點標記
-            filter_profanity=False,  # 不過濾髒話
-            redact_pii=False,  # 不隱藏個人資訊
-            word_boost=["hello", "thank", "please", "excuse", "sorry", "help"]  # 提升常用禮貌用語識別
-        )
-        
-        # 創建轉錄器
-        transcriber = aai.Transcriber(config=config)
-        
-        print("📤 上傳音檔到 AssemblyAI...")
-        
-        # 轉錄音檔
+        from Assembly_api_manager import get_assembly_transcriber
+        transcriber = get_assembly_transcriber()
         transcript = transcriber.transcribe(audio_file_path)
-        
-        # 檢查轉錄狀態
-        if transcript.status == "error":
-            print(f"❌ AssemblyAI 轉錄失敗: {transcript.error}")
+
+        if transcript is None:
+            print("❌ AssemblyAI 轉錄失敗，所有金鑰均嘗試失敗。")
             return fallback_speech_recognition(audio_file_path)
-        
-        # 檢查是否有識別到內容
-        if not transcript.text or transcript.text.strip() == "":
+
+        if not transcript.text or not transcript.text.strip():
             print("⚠️ AssemblyAI 未識別到語音內容")
             return {
                 'success': False,
                 'error': '無法識別語音內容，請確保說話清晰並重新錄音'
             }
-        
-        # 計算置信度 (AssemblyAI 提供的置信度)
+
         confidence = transcript.confidence if hasattr(transcript, 'confidence') and transcript.confidence else 0.9
-        
         print(f"✅ AssemblyAI 識別成功: {transcript.text}")
         print(f"📊 置信度: {confidence}")
         
@@ -1354,17 +1365,13 @@ def speech_to_text(audio_file_path):
             'success': True,
             'text': transcript.text.strip(),
             'confidence': confidence,
-            'method': 'assemblyai',
+            'method': 'assemblyai_manager',
             'audio_duration': transcript.audio_duration if hasattr(transcript, 'audio_duration') else None,
             'words_count': len(transcript.text.split()) if transcript.text else 0
         }
-        
-    except ImportError:
-        print("❌ AssemblyAI 套件未安裝")
-        return fallback_speech_recognition(audio_file_path)
+
     except Exception as e:
-        print(f"❌ AssemblyAI 識別失敗: {e}")
-        # 如果 AssemblyAI 失敗，使用備用方案
+        print(f"❌ AssemblyAIManager 識別過程中發生未知錯誤: {e}")
         return fallback_speech_recognition(audio_file_path)
 
 def try_alternative_recognition(audioData, recognizer):
@@ -3275,40 +3282,9 @@ def clear_material():
         print(f"Clear error: {str(e)}")
         return jsonify({'success': False, 'message': f'清除失敗: {str(e)}'})
 
-if __name__ == "__main__":
-    # 檢查 API 管理器狀態
-    try:
-        manager = get_gemini_manager()
-        stats = manager.get_stats()
-        print(f"🔧 API 管理器已啟動")
-        print(f"📊 可用金鑰: {stats['active_keys']}/{stats['total_keys']}")
-        print(f"📈 總請求數: {stats['total_requests']}")
-        print(f"✅ 成功率: {stats['success_rate']:.1f}%")
-    except Exception as e:
-        print(f"⚠️ API 管理器初始化警告: {e}")
-    
-    # 啟動背景預載入
-    preload_common_resources()
-    
-    # 嘗試啟動 ngrok（如果失敗就跳過）
-    try:
-        start_ngrok()
-    except Exception as e:
-        print(f"⚠️ ngrok 啟動失敗（可能已有其他會話運行）: {e}")
-        print("📱 應用將在本地運行，請使用 http://localhost:8000")
-    
-    # 啟動定時清理任務
-    import threading
-    import time
-    
-    def cleanup_scheduler():
-        while True:
-            time.sleep(3600)  # 每小時執行一次
-            auto_cleanup_translations()
-    
-    cleanup_thread = threading.Thread(target=cleanup_scheduler)
-    cleanup_thread.daemon = True
-    cleanup_thread.start()
-
-    # 啟動 Flask
-    app.run(host='0.0.0.0', port=8000)
+if __name__ == '__main__':
+    # 啟動 Flask 應用程式
+    # 公開網址將由手動執行的 cloudflared 指令提供
+    print("Flask app is running on http://127.0.0.1:5000")
+    print("提示：請在新的終端機視窗中執行 'cloudflared tunnel --url http://127.0.0.1:5000' 來取得公開網址。")
+    app.run(host='127.0.0.1', port=5000)

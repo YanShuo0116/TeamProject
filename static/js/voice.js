@@ -49,38 +49,71 @@ window.stopRecording = function() {
     formData.append("reference", document.getElementById("reference").value);
 
     try {
-      const response = await fetch("/upload", {
+      // 步驟 1: 上傳音檔並取得語音辨識文字
+      const uploadResponse = await fetch("/voice/upload", { // 修正路由
         method: "POST",
         body: formData
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error("伺服器錯誤：" + errorText);
+      if (!uploadResponse.ok) {
+        throw new Error(`伺服器錯誤: ${uploadResponse.statusText}`);
       }
 
-      const result = await response.json();
+      const transcriptionResult = await uploadResponse.json();
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (!transcriptionResult.success) {
+        throw new Error(transcriptionResult.error);
       }
 
-      resultEl.textContent =
-        `你說的是：${result.transcribed}\n應該是：${result.reference}\n相似度：${(result.similarity * 100).toFixed(1)}%\n結果：${result.match ? "✅ 正確" : "❌ 有誤"}`;
+      statusEl.textContent = "🤖 AI 評估中...";
 
-      // 播放音檔（防止快取）
-      if (result.audio_url) {
-        audioPlayer.src = result.audio_url;
+      // 步驟 2: 將辨識結果送去 AI 評估
+      const evaluateResponse = await fetch("/api/voice/evaluate", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reference: transcriptionResult.reference,
+          transcribed: transcriptionResult.transcribed
+        })
+      });
+
+      if (!evaluateResponse.ok) {
+        throw new Error(`AI 評估伺服器錯誤: ${evaluateResponse.statusText}`);
+      }
+
+      const evaluationResult = await evaluateResponse.json();
+
+      if (!evaluationResult.success) {
+        throw new Error(evaluationResult.error);
+      }
+
+      // 步驟 3: 顯示豐富的評估結果
+      const evaluation = evaluationResult.evaluation;
+      resultEl.innerHTML = `
+        <p><strong>你說的是：</strong> ${transcriptionResult.transcribed}</p>
+        <p><strong>參考答案：</strong> ${transcriptionResult.reference}</p>
+        <hr>
+        <h4>AI 評估結果</h4>
+        <p><strong>分數：</strong> ${evaluation.score} / 100</p>
+        <p><strong>總體回饋：</strong> ${evaluation.feedback}</p>
+        <p><strong>改進建議：</strong> ${evaluation.suggestion}</p>
+        <p><strong>建議說法：</strong> ${evaluation.improved_answer}</p>
+      `;
+
+      // 顯示並播放音檔
+      if (transcriptionResult.audio_url) {
+        audioPlayer.src = transcriptionResult.audio_url;
         audioPlayer.style.display = "block";
         audioPlayer.load();
-        audioPlayer.play().catch(e => {
-          console.log("自動播放失敗:", e);
-        });
+        audioPlayer.play().catch(e => console.log("自動播放失敗:", e));
       }
 
       statusEl.textContent = "✅ 分析完成";
     } catch (error) {
-      statusEl.textContent = "❌ 發生錯誤：" + error.message;
+      statusEl.textContent = `❌ 發生錯誤：${error.message}`;
+      resultEl.textContent = '請重試';
     }
 
     isRecording = false;
