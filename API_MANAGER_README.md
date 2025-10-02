@@ -12,7 +12,7 @@
 ## 🔧 快速設置
 
 ### 1. 配置 API 金鑰
-編輯 `api_config.json` 文件：
+編輯 `.env` 文件：
 ```json
 {
   "api_keys": [

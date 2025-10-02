@@ -9,6 +9,10 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import json
 import os
+from dotenv import load_dotenv
+
+# 載入 .env 文件
+load_dotenv()
 
 class APIKeyManager:
     def __init__(self, config_file: str = "api_config.json"):
@@ -23,25 +27,57 @@ class APIKeyManager:
         self._initialize_keys()
     
     def _load_config(self):
-        """載入配置文件"""
+        """載入配置文件 - 優先使用 .env 環境變量"""
         try:
-            if os.path.exists(self.config_file):
+            # 優先從環境變量載入 API keys
+            env_keys = []
+            for i in range(1, 6):  # 支持最多5個API key
+                key = os.getenv(f'GEMINI_API_KEY_{i}')
+                if key and key.strip():
+                    env_keys.append(key.strip())
+            
+            if env_keys:
+                self.api_keys = env_keys
+                self.logger.info(f"從環境變量載入了 {len(env_keys)} 個 API keys")
+                
+                # 載入其他設置
+                self.max_retries = int(os.getenv('API_MAX_RETRIES', 5))
+                self.retry_delay = int(os.getenv('API_RETRY_DELAY', 1))
+                self.failure_threshold = int(os.getenv('API_FAILURE_THRESHOLD', 3))
+                self.reset_interval_hours = int(os.getenv('API_RESET_INTERVAL_HOURS', 1))
+                
+            elif os.path.exists(self.config_file):
+                # 如果沒有環境變量，回退到 JSON 配置文件
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
                     self.api_keys = config.get('api_keys', [])
+                    settings = config.get('settings', {})
+                    self.max_retries = settings.get('max_retries', 5)
+                    self.retry_delay = settings.get('retry_delay', 1)
+                    self.failure_threshold = settings.get('failure_threshold', 3)
+                    self.reset_interval_hours = settings.get('reset_interval_hours', 1)
+                self.logger.info(f"從 JSON 配置文件載入了 {len(self.api_keys)} 個 API keys")
             else:
+                # 最後的備用方案
                 self.api_keys = [
-                    os.getenv('GEMINI_API_KEY_1', 'AIzaSyDo3-S0kOSPo9O99cTolLQUv3-x3Ebq3kM'),
-                    os.getenv('GEMINI_API_KEY_2', ''),  
-                    os.getenv('GEMINI_API_KEY_3', ''),
+                    os.getenv('GEMINI_API_KEY', ''),
+                    os.getenv('GEMINI_API_KEY_1', ''),
                 ]
-               
                 self.api_keys = [key for key in self.api_keys if key.strip()]
+                self.max_retries = 5
+                self.retry_delay = 1
+                self.failure_threshold = 3
+                self.reset_interval_hours = 1
+                self.logger.warning("使用備用配置")
                 
         except Exception as e:
             self.logger.error(f"載入配置失敗: {e}")
-            # 使用預設 key
-            self.api_keys = ['AIzaSyDo3-S0kOSPo9O99cTolLQUv3-x3Ebq3kM']
+            # 使用預設值
+            self.api_keys = [os.getenv('GEMINI_API_KEY', 'AIzaSyDo3-S0kOSPo9O99cTolLQUv3-x3Ebq3kM')]
+            self.max_retries = 5
+            self.retry_delay = 1
+            self.failure_threshold = 3
+            self.reset_interval_hours = 1
     
     def _initialize_keys(self):
         """初始化 API key 統計"""
@@ -100,14 +136,14 @@ class APIKeyManager:
         stats['failed_requests'] += 1
         stats['consecutive_failures'] += 1
         
-        # 如果連續失敗超過3次，暫時禁用這個 key
-        if stats['consecutive_failures'] >= 3:
+        # 如果連續失敗超過設定的閾值，暫時禁用這個 key
+        if stats['consecutive_failures'] >= self.failure_threshold:
             self.failed_keys.add(key)
             self.logger.warning(f"API key {key_id} 連續失敗，暫時禁用")
     
     def _reset_failed_keys(self):
-        """重置失效的 key（每小時執行一次）"""
-        if datetime.now() - self.last_cleanup > timedelta(hours=1):
+        """重置失效的 key（根據設定的間隔執行）"""
+        if datetime.now() - self.last_cleanup > timedelta(hours=self.reset_interval_hours):
             self.failed_keys.clear()
             self.last_cleanup = datetime.now()
             self.logger.info("重置失效 API key 列表")
