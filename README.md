@@ -1,5 +1,7 @@
 # AI 英文學習平台
 
+簡易DEMO: [https://smart-abc.onrender.com/](https://smart-abc.onrender.com/)
+
 [![Python](https://img.shields.io/badge/Python-3.9+-green?style=flat-square&logo=python)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.3+-red?style=flat-square&logo=flask)](https://flask.palletsprojects.com)
 [![LangChain](https://img.shields.io/badge/LangChain-0.3+-purple?style=flat-square)](https://langchain.com)
