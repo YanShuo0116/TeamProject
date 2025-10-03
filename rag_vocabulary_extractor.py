@@ -9,10 +9,10 @@ import re
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-import google.generativeai as genai
 
 from utils import get_loader
-from api_key_manager import get_key
+# 使用新的 API 管理器，它會從 .env 檔案載入金鑰
+from api_manager import SafeGenerativeModel
 
 def extract_vocabulary_with_rag(file_path: str) -> list[dict]:
     """
@@ -66,12 +66,8 @@ def extract_vocabulary_with_rag(file_path: str) -> list[dict]:
         context_text = "\n---\n".join([doc.page_content for doc in retrieved_docs])
 
         # 4. 根據檢索到的內容生成單字 (Generate)
-        api_key = get_key("gemini")
-        if not api_key:
-            raise ValueError("Gemini API 金鑰未設定。")
-        
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17')
+        # 使用 SafeGenerativeModel，它會自動處理 API 金鑰
+        model = SafeGenerativeModel()
 
         prompt = f"""
         You are an expert English teacher assisting a student learning English.
@@ -98,12 +94,22 @@ def extract_vocabulary_with_rag(file_path: str) -> list[dict]:
         response = model.generate_content(prompt)
         
         # 從回應中提取 JSON 字串
-        # 模型有時會在 JSON 前後加上 ```json ... ```
-        json_match = re.search(r'```json\s*([\s\S]*?)\s*```|([\s\S]*)', response.text)
-        if not json_match:
-            raise ValueError(f"模型未返回有效的 JSON 格式。收到的回應: {response.text}")
-            
-        json_str = json_match.group(1) or json_match.group(2)
+        # 新的、更穩健的 JSON 提取邏輯
+        text = response.text
+        json_str = None
+
+        # 1. 優先尋找 ```json ... ``` 區塊
+        match = re.search(r'```json\s*([\s\S]*?)\s*```', text)
+        if match:
+            json_str = match.group(1)
+        else:
+            # 2. 如果找不到，尋找被 `[` 和 `]` 包圍的原始 JSON 陣列
+            match = re.search(r'(\[[\s\S]*?\])', text)
+            if match:
+                json_str = match.group(1)
+
+        if not json_str:
+            raise ValueError(f"模型未返回有效的 JSON 格式。收到的回應: {text}")
         
         # 5. 解析並返回結果
         vocabulary_list = json.loads(json_str)

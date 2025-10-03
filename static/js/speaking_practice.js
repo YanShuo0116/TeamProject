@@ -17,7 +17,8 @@ class SpeakingPractice {
     init() {
         this.bindEvents();
         this.loadTopics();
-        this.setupAudioRecording();
+        // 移除此處的 setupAudioRecording，延遲到用戶點擊錄音時再執行
+        // this.setupAudioRecording(); 
     }
 
     bindEvents() {
@@ -575,18 +576,23 @@ class SpeakingPractice {
     }
 
     checkAudioSupport() {
-        // 檢查支援的音檔格式
-        const supportedTypes = [];
-        const testTypes = ['audio/webm', 'audio/mp4', 'audio/wav'];
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+        // iOS 優先使用 audio/mp4，其他系統優先使用 audio/webm
+        const testTypes = isIOS 
+            ? ['audio/mp4', 'audio/webm', 'audio/wav'] 
+            : ['audio/webm', 'audio/mp4', 'audio/wav'];
         
-        testTypes.forEach(type => {
+        let supportedMimeType = null;
+        for (const type of testTypes) {
             if (MediaRecorder.isTypeSupported(type)) {
-                supportedTypes.push(type);
+                supportedMimeType = type;
+                break;
             }
-        });
+        }
         
-        this.supportedMimeType = supportedTypes[0] || 'audio/webm';
-        console.log('支援的音檔格式:', this.supportedMimeType);
+        this.supportedMimeType = supportedMimeType || 'audio/webm'; // 預設值
+        console.log(`[Audio Check] Is iOS: ${isIOS}, Selected MIME Type: ${this.supportedMimeType}`);
     }
 
     showMicrophoneError(error) {
@@ -671,9 +677,9 @@ class SpeakingPractice {
         const mimeType = this.supportedMimeType || 'audio/webm';
         this.currentAudioBlob = new Blob(this.audioChunks, { type: mimeType });
         
-        // 檢查音檔大小
-        if (this.currentAudioBlob.size < 1000) {
-            alert('錄音時間太短，請重新錄音');
+        // 檢查音檔大小，與後端 fallback_speech_recognition 保持一致
+        if (this.currentAudioBlob.size < 5000) {
+            alert('錄音時間太短 (檔案需大於 5KB)，請重新錄音。');
             this.resetRecordingUI();
             return;
         }
@@ -816,6 +822,12 @@ class SpeakingPractice {
             alert(`提交失敗: ${error.message}`);
         } finally {
             this.resetRecordingUI();
+            // 釋放麥克風資源，確保下次可以重新獲取
+            if (this.audioStream) {
+                this.audioStream.getTracks().forEach(track => track.stop());
+                this.audioStream = null;
+                console.log('Audio stream stopped and released.');
+            }
         }
     }
 

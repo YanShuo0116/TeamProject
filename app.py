@@ -1424,7 +1424,7 @@ def fallback_speech_recognition(audio_file_path):
         if file_size < 5000:
             return {
                 'success': False,
-                'error': '錄音時間太短，請重新錄音'
+                'error': '錄音時間太短或上傳失敗。若您正使用Cloudflare，請檢查相關設定(如上傳大小限制或超時)，或嘗試暫時關閉代理。'
             }
         elif file_size > 2000000:  # 2MB
             return {
@@ -3184,7 +3184,8 @@ def ask_material_question():
         from config import settings
         from langchain.chains import RetrievalQA
         from safe_gemini_llm import GeminiLLM
-        from api_key_manager import get_key
+        # 統一使用新的 API 管理器
+        from api_manager import get_gemini_manager
         
         # 直接載入臨時向量資料庫，不使用 DatabaseManager
         vector_db_path = material_info['vector_db_path']
@@ -3205,10 +3206,11 @@ def ask_material_question():
         # 建立檢索器
         retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
         
-        # 建立 LLM
-        api_key = get_key("gemini")
+        # 建立 LLM (使用新的 API 管理器獲取金鑰)
+        manager = get_gemini_manager()
+        api_key = manager.key_manager.get_best_key()
         if not api_key:
-            raise ValueError("❌ 沒有設定 Gemini API 金鑰")
+            raise ValueError("❌ 沒有設定或所有 Gemini API 金鑰均失效")
         
         llm = GeminiLLM(api_key=api_key)
         
