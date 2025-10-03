@@ -3014,6 +3014,155 @@ def new_composition():
     composition_data = session.get('composition_data', {})
     return render_template('composition_new.html', composition_data=composition_data)
 
+@app.route("/composition_teacher")
+@login_required
+def composition_teacher():
+    """引導式學習作文老師頁面"""
+    return render_template('composition_teacher.html')
+
+@app.route("/api/composition_feedback", methods=["POST"])
+@login_required
+def composition_feedback():
+    """處理作文引導式學習的AI回饋請求"""
+    try:
+        data = request.get_json()
+        
+        # 獲取請求參數
+        introduction = data.get('introduction', '').strip()
+        body = data.get('body', '').strip()
+        conclusion = data.get('conclusion', '').strip()
+        current_section = data.get('current_section', 'all')
+        user_question = data.get('user_question', '').strip()
+        
+        # 建構給AI的prompt
+        prompt_parts = []
+        prompt_parts.append("你是一位專業的英文作文老師，請根據學生的作文內容和問題提供建設性的回饋。")
+        
+        # 添加學生的作文內容（總是包含所有段落）
+        if introduction:
+            prompt_parts.append(f"\n【學生的引言段落】:\n{introduction}")
+        
+        if body:
+            prompt_parts.append(f"\n【學生的內文段落】:\n{body}")
+            
+        if conclusion:
+            prompt_parts.append(f"\n【學生的結論段落】:\n{conclusion}")
+        
+        # 添加當前段落信息
+        if current_section != 'all':
+            section_names = {
+                'introduction': '引言',
+                'body': '內文', 
+                'conclusion': '結論'
+            }
+            prompt_parts.append(f"\n【當前編輯段落】: {section_names.get(current_section, current_section)}")
+        
+        # 添加學生的問題
+        if user_question:
+            prompt_parts.append(f"\n【學生的問題】: {user_question}")
+        
+        # 添加回饋指導原則
+        prompt_parts.append("""
+        
+請提供以下類型的回饋：
+1. 針對學生問題的直接回答
+2. 具體的寫作建議和改進方向
+3. 語法、詞彙、結構方面的指導
+4. 鼓勵性的正面回饋
+
+請用繁體中文回答，語氣要親切且具有教學性。回答要簡潔明瞭但有幫助，避免過長的回應。
+        """)
+        
+        full_prompt = "".join(prompt_parts)
+        
+        # 使用API管理器獲取AI回應
+        manager = get_gemini_manager()
+        ai_response = manager.generate_content(full_prompt)
+        
+        if not ai_response:
+            return jsonify({
+                'success': False,
+                'message': 'AI服務暫時無法使用，請稍後再試'
+            })
+        
+        # 記錄學習活動
+        try:
+            record = LearningRecord(
+                user_id=current_user.id,
+                activity_type='composition_teacher',
+                content=f"問題: {user_question[:100]}..."
+            )
+            db.session.add(record)
+            db.session.commit()
+        except Exception as e:
+            print(f"Error saving learning record: {e}")
+        
+        return jsonify({
+            'success': True,
+            'feedback': ai_response,
+            'question': user_question
+        })
+        
+    except Exception as e:
+        print(f"Composition feedback error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'處理請求時發生錯誤: {str(e)}'
+        })
+
+@app.route("/composition/save_teacher", methods=["POST"])
+@login_required
+def save_teacher_composition():
+    """儲存引導式學習作文"""
+    try:
+        data = request.get_json()
+        
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        sections = data.get('sections', {})
+        ai_evaluation = data.get('ai_evaluation', '').strip()
+        
+        if not title or not content:
+            return jsonify({
+                'success': False,
+                'message': '標題和內容不能為空'
+            })
+        
+        # 儲存作文到資料庫
+        composition = Composition(
+            user_id=current_user.id,
+            title=title,
+            content=content,
+            ai_feedback=ai_evaluation if ai_evaluation else "引導式學習作文"
+        )
+        
+        db.session.add(composition)
+        db.session.commit()
+        
+        # 記錄學習活動
+        record = LearningRecord(
+            user_id=current_user.id,
+            activity_type='composition_teacher_save',
+            content=f"儲存引導式作文: {title}"
+        )
+        db.session.add(record)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'composition_id': composition.id,
+            'message': '作文批改完成並儲存成功',
+            'ai_evaluation': ai_evaluation
+        })
+        
+    except Exception as e:
+        print(f"Save teacher composition error: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'儲存失敗: {str(e)}'
+        })
+
 @app.route("/composition/view/<int:composition_id>")
 @login_required
 def view_composition(composition_id):
@@ -3050,10 +3199,7 @@ def delete_composition(composition_id):
         return jsonify({'success': False, 'error': '刪除失敗'})
 
 
-def start_ngrok():
-    public_url = ngrok.connect(8000)  # 指向 Flask 的埠號
-    print(f"公開 URL: {public_url}")
-    return public_url
+
 
 def preload_common_resources():
     """背景預載入常用單字的圖片和音檔"""

@@ -66,11 +66,49 @@
         <main>
             <div class="composition-dashboard">
                 <div class="action-section">
-                    <h2>開始新作文</h2>
-                    <p>選擇一個主題開始您的英語作文練習</p>
-                    <a href="{{ url_for('new_composition') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> 創建新作文
-                    </a>
+                    <h2>選擇作文學習模式</h2>
+                    <p>我們提供兩種不同的英語作文學習方式</p>
+                    
+                    <div class="composition-modes">
+                        <div class="mode-card recommended">
+                            <div class="mode-header">
+                                <h3><i class="fas fa-chalkboard-teacher"></i> 引導式學習作文老師</h3>
+                                <span class="badge badge-recommended">推薦</span>
+                            </div>
+                            <p class="mode-description">
+                                分段撰寫（引言、內文、結論），與AI老師即時互動提問，
+                                獲得寫作建議和批改回饋。適合想要深度學習寫作技巧的學生。
+                            </p>
+                            <div class="mode-features">
+                                <span class="feature"><i class="fas fa-check"></i> 分段式寫作指導</span>
+                                <span class="feature"><i class="fas fa-check"></i> AI老師即時互動</span>
+                                <span class="feature"><i class="fas fa-check"></i> 個人化寫作建議</span>
+                                <span class="feature"><i class="fas fa-check"></i> 批改回饋</span>
+                            </div>
+                            <a href="{{ url_for('composition_teacher') }}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-graduation-cap"></i> 開始引導式學習
+                            </a>
+                        </div>
+                        
+                        <div class="mode-card">
+                            <div class="mode-header">
+                                <h3><i class="fas fa-magic"></i> 漸進式作文生成</h3>
+                            </div>
+                            <p class="mode-description">
+                                從構想到完整作文的漸進式生成。AI協助你一步步建構作文架構，
+                                適合需要寫作靈感和架構協助的學生。
+                            </p>
+                            <div class="mode-features">
+                                <span class="feature"><i class="fas fa-check"></i> 主題發想協助</span>
+                                <span class="feature"><i class="fas fa-check"></i> 段落架構規劃</span>
+                                <span class="feature"><i class="fas fa-check"></i> 逐步內容生成</span>
+                                <span class="feature"><i class="fas fa-check"></i> 完整作文輸出</span>
+                            </div>
+                            <a href="{{ url_for('new_composition') }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-plus"></i> 開始漸進生成
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 {% if user_compositions %}

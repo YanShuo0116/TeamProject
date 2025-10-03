@@ -1,9 +1,13 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
 db = SQLAlchemy()
+
+# Function to get current time in UTC+8
+def get_utc8_now():
+    return datetime.now(timezone(timedelta(hours=8)))
 
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
@@ -13,7 +17,7 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='user') # 'user' or 'admin'
     preferred_accent = db.Column(db.String(10), nullable=False, default='us') # 'us' or 'co.uk'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc8_now)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -27,7 +31,7 @@ class LearningRecord(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     activity_type = db.Column(db.String(50), nullable=False) # e.g., 'translation', 'composition', 'vocabulary'
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_utc8_now)
     user = db.relationship('User', backref=db.backref('learning_records', lazy=True))
 
 class Composition(db.Model):
@@ -37,7 +41,7 @@ class Composition(db.Model):
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     ai_feedback = db.Column(db.Text, nullable=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_utc8_now)
     user = db.relationship('User', backref=db.backref('compositions', lazy=True))
 
 class Vocabulary(db.Model):
@@ -72,7 +76,7 @@ class LessonProgress(db.Model):
     learned_words = db.Column(db.Integer, nullable=False, default=0)
     is_completed = db.Column(db.Boolean, nullable=False, default=False)
     completion_date = db.Column(db.DateTime, nullable=True)
-    last_studied = db.Column(db.DateTime, default=datetime.utcnow)
+    last_studied = db.Column(db.DateTime, default=get_utc8_now)
     user = db.relationship('User', backref=db.backref('lesson_progress', lazy=True))
 
 class SystemSetting(db.Model):
@@ -86,7 +90,7 @@ class AdminLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     action = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_utc8_now)
     admin = db.relationship('User', backref=db.backref('admin_logs', lazy=True))
 
 class TranslationRecord(db.Model):
@@ -99,7 +103,7 @@ class TranslationRecord(db.Model):
     explanation = db.Column(db.Text, nullable=True)
     examples = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='processing')  # 'processing', 'completed', 'failed'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc8_now)
     completed_at = db.Column(db.DateTime, nullable=True)
     user = db.relationship('User', backref=db.backref('translation_records', lazy=True))
 
@@ -114,7 +118,7 @@ class QuizAttempt(db.Model):
     is_passed = db.Column(db.Boolean, nullable=False, default=False)
     completion_time = db.Column(db.Integer, nullable=True)  # 完成時間（秒）
     status = db.Column(db.String(20), nullable=False, default='in_progress')  # 'in_progress', 'completed', 'abandoned'
-    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, default=get_utc8_now)
     completed_at = db.Column(db.DateTime, nullable=True)
     user = db.relationship('User', backref=db.backref('quiz_attempts', lazy=True))
 
@@ -142,7 +146,7 @@ class SpeakingSession(db.Model):
     cefr_level = db.Column(db.String(10), nullable=False)
     scenario_index = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(db.String(20), nullable=False, default='active')  # active, completed, abandoned
-    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, default=get_utc8_now)
     completed_at = db.Column(db.DateTime, nullable=True)
     
     # 關聯
@@ -154,7 +158,7 @@ class CustomVocabularyBook(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc8_now)
 
     user = db.relationship('User', backref=db.backref('custom_vocabulary_books', lazy=True))
     words = db.relationship('CustomVocabulary', backref='book', lazy='dynamic', cascade="all, delete-orphan")
@@ -164,7 +168,7 @@ class CustomVocabulary(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     english_word = db.Column(db.String(150), nullable=False)
     chinese_translation = db.Column(db.String(300), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc8_now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('custom_vocabulary_books.id'), nullable=False)
 
@@ -200,7 +204,7 @@ class SpeakingExchange(db.Model):
     overall_score = db.Column(db.Integer, nullable=True)
     
     # 時間戳
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc8_now)
     responded_at = db.Column(db.DateTime, nullable=True)
     evaluated_at = db.Column(db.DateTime, nullable=True)
 
@@ -230,8 +234,8 @@ class SpeakingProgress(db.Model):
     best_session_date = db.Column(db.DateTime, nullable=True)
     
     # 時間戳
-    first_attempt = db.Column(db.DateTime, default=datetime.utcnow)
-    last_attempt = db.Column(db.DateTime, default=datetime.utcnow)
+    first_attempt = db.Column(db.DateTime, default=get_utc8_now)
+    last_attempt = db.Column(db.DateTime, default=get_utc8_now)
     
     # 關聯
     user = db.relationship('User', backref=db.backref('speaking_progress', lazy=True))
@@ -247,7 +251,7 @@ class CustomQuizAttempt(db.Model):
     is_passed = db.Column(db.Boolean, nullable=False, default=False)
     completion_time = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='in_progress')
-    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, default=get_utc8_now)
     completed_at = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship('User', backref=db.backref('custom_quiz_attempts', lazy=True))

@@ -1,3 +1,15 @@
+## ✨ 最近更新 (2025/10/03)
+
+### 功能與優化
+*   **引導式學習作文老師:**
+    *   大幅優化 AI 老師的回饋，使其更簡潔、精準且符合使用者需求。
+    *   改善使用者流程，在批改作文後會自動轉跳至該篇作文的檢視頁面。
+
+### 錯誤修復
+*   **時區校正:** 修正所有資料的建立時間，從國際標準時間 (UTC) 校正為台灣時區 (UTC+8)。
+
+---
+
 # 🎓 AI 英文學習平台
 
 [![Demo](https://img.shields.io/badge/🌐_Live_Demo-smart--abc.onrender.com-blue?style=for-the-badge)](https://smart-abc.onrender.com/)
@@ -6,7 +18,6 @@
 [![LangChain](https://img.shields.io/badge/LangChain-0.3+-purple?style=flat-square)](https://langchain.com)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_DB-orange?style=flat-square)](https://chromadb.ai)
 
-> 🚀 **突破性技術特點**： **RAG 雙層架構** + **多模態 AI 互動** 的智慧英語學習平台
 
 ## 🌟 核心技術亮點
 
@@ -178,20 +189,20 @@ pip install -r requirements.txt
 
 
        _                        
-       `*-.
-        )  _`-.
-       .  : `. .
-       : _   '  \
-       ; *` _.   `*-._
-       `-.-'          `-.
-         ;       `       `.
-         :.       .        \
-         . \  .   :   .-'   .
-         '  `+.;  ;  '      :
+       `*-. 
+        )  _`-. 
+       .  : `. . 
+       : _   '  \ 
+       ; *` _.   `*-._ 
+       `-.-'          `-. 
+         ;       `       `. 
+         :.       .        \ 
+         . \  .   :   .-'   . 
+         '  `+.;  ;  '      : 
          :  '  |    ;       ;-. 
-         ; '   : :`-:     _.`* ;
+         ; '   : :`-:     _.`* ; 
 [bug] .*' /  .*' ; .*`- +'  `*' 
-      `*-*   `*-*  `*-*'
+      `*-*   `*-*  `*-*' 
 
 
 
@@ -344,7 +355,7 @@ my_project_v0.4/
 - **📊 即時AI評估**：語法、詞彙、流暢度、相關性四維度評分
 
 ### 技術特色
-- **AssemblyAI 語音轉文字**：取代傳統 Google Speech API，提供更穩定的語音識別
+- **AssemblyAI 語音轉文字**：取代傳統 Google Speech，提供更穩定的語音識別
 - **多層次翻譯策略**：精確翻譯對照表 + 智能關鍵詞匹配 + 備用翻譯機制
 - **防重複出題演算法**：智能追蹤已使用情境，確保學習內容多樣性
 - **響應式設計**：支援各種螢幕尺寸，完美適配桌面和移動設備
@@ -353,7 +364,6 @@ my_project_v0.4/
 - **沉浸式英語環境**：英文優先顯示，中文翻譯按需查看
 - **真實對話模擬**：店員問候 → 學生回應的自然對話流程
 - **視覺化學習回饋**：彩色評分條、動畫效果、狀態指示
-- **個性化難度調整**：從A1基礎到C2精通，滿足不同程度學習者
 
 ### 支援的練習主題
 1. 🗣️ 自我介紹 (Introducing Yourself)
@@ -368,5 +378,3 @@ my_project_v0.4/
 10. 🎉 邀請 (Making Invitations)
 11. 🎨 興趣愛好 (Talking about Hobbies)
 12. 🌤️ 天氣 (Talking about the Weather)
-
-

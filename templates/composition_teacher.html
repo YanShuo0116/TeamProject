@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>引導式學習作文老師</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/composition_teacher.css') }}">
+</head>
+<body class="dark-mode">
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt=" " style="height: 30px; margin-right: 8px;">
+                智慧ABC
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="vocabDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-book"></i> 單字卡
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="vocabDropdown">
+                            <a class="dropdown-item" href="/vocabulary_learning/1200">國小1200基礎單字</a>
+                            <a class="dropdown-item" href="/custom_vocabulary">自訂單字卡</a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/material_practice"><i class="fas fa-book-reader"></i> 教材練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/new_we"><i class="fas fa-users"></i> 關於我們</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid" style="margin-top: 80px; padding: 20px;">
+        <div class="row g-4">
+            <!-- Left Sidebar - Writing Tips -->
+            <div class="col-lg-3">
+                <div class="writing-tips-sidebar">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-lightbulb me-2"></i>寫作小建議</h5>
+                        <button class="btn btn-outline-primary btn-sm" id="refresh-tips-btn">
+                            <i class="fas fa-sync-alt"></i> 刷新建議
+                        </button>
+                    </div>
+                    <div id="teacher-tips-content">
+                        <p>點擊段落標籤來查看相關的寫作技巧，或點擊刷新獲得AI個人化建議！</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Writing Area -->
+            <div class="col-lg-6">
+                <div class="writing-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="mb-0">我的作文</h2>
+                        <button class="btn btn-success" id="save-composition-btn"><i class="fas fa-check-circle me-2"></i>批改並儲存</button>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="composition-title" class="form-label">作文標題</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="composition-title" placeholder="請輸入您的作文標題">
+                            <button class="btn btn-outline-secondary" type="button" id="random-topic-btn">
+                                <i class="fas fa-dice"></i> 隨機題目
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section Tabs -->
+                    <ul class="nav nav-tabs" id="section-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="intro-tab" data-bs-toggle="tab" data-bs-target="#intro-panel" type="button" role="tab">引言 (Introduction)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="body-tab" data-bs-toggle="tab" data-bs-target="#body-panel" type="button" role="tab">內文 (Body)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="conclusion-tab" data-bs-toggle="tab" data-bs-target="#conclusion-panel" type="button" role="tab">結論 (Conclusion)</button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="section-tab-content">
+                        <div class="tab-pane fade show active" id="intro-panel" role="tabpanel">
+                            <textarea id="introduction-text" class="form-control section-textarea" rows="8" placeholder="開始撰寫你的引言..."></textarea>
+                        </div>
+                        <div class="tab-pane fade" id="body-panel" role="tabpanel">
+                            <textarea id="body-text" class="form-control section-textarea" rows="12" placeholder="撰寫內文段落..."></textarea>
+                        </div>
+                        <div class="tab-pane fade" id="conclusion-panel" role="tabpanel">
+                            <textarea id="conclusion-text" class="form-control section-textarea" rows="8" placeholder="為你的作文寫下總結..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - AI Chat -->
+            <div class="col-lg-3">
+                <div class="ai-chat-sidebar">
+                    <h5><i class="fas fa-chalkboard-teacher me-2"></i>與 AI 老師對話</h5>
+                    
+                    <!-- AI Chat -->
+                    <div class="ai-chat-card">
+                        <div class="chat-history" id="chat-history">
+                            <div class="chat-message chat-message-ai">
+                                <p>你好！我是你的AI作文老師。有任何寫作問題都可以問我喔！</p>
+                            </div>
+                        </div>
+                        <div class="chat-input-group">
+                            <input type="text" id="user-question-input" class="form-control" placeholder="有什麼問題嗎？">
+                            <button class="btn btn-primary" id="ask-ai-btn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                        
+                        <!-- Quick Questions -->
+                        <div class="quick-questions-section mt-3">
+                            <h6 class="mb-2"><i class="fas fa-bolt me-2"></i>快捷提問</h6>
+                            <div id="quick-questions-buttons">
+                                <button class="btn btn-outline-info btn-sm quick-question-btn" data-question="優化這一段">優化這一段</button>
+                                <button class="btn btn-outline-info btn-sm quick-question-btn" data-question="這段語法正確嗎？">檢查語法</button>
+                                <button class="btn btn-outline-info btn-sm quick-question-btn" data-question="能不能幫我想個主題句">給我主題句建議</button>
+                                <button class="btn btn-outline-info btn-sm quick-question-btn" data-question="檢查這段有沒有文意重複">檢查文意重複</button>
+                                <button class="btn btn-outline-info btn-sm quick-question-btn" data-question="這篇作文整體結構如何？">檢查整體結構</button>
+                                <button class="btn btn-outline-info btn-sm quick-question-btn" data-question="有什麼詞彙可以替換讓文章更豐富？">詞彙建議</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/composition_teacher.js') }}"></script>
+</body>
+</html>

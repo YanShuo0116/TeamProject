@@ -1298,3 +1298,138 @@ audio {
         justify-content: center;
     }
 }
+
+/* 作文模式選擇樣式 */
+.composition-modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.mode-card {
+    background-color: var(--card-background);
+    border: 2px solid var(--border-color);
+    border-radius: 15px;
+    padding: 25px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.mode-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+    border-color: var(--primary-color);
+}
+
+.mode-card.recommended {
+    border-color: var(--success-color);
+    background: linear-gradient(135deg, var(--card-background) 0%, rgba(46, 204, 113, 0.1) 100%);
+}
+
+.mode-card.recommended:hover {
+    border-color: var(--success-color);
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.3);
+}
+
+.mode-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.mode-header h3 {
+    color: var(--text-color);
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.mode-header h3 i {
+    margin-right: 10px;
+    color: var(--primary-color);
+}
+
+.badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-recommended {
+    background-color: var(--success-color);
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.mode-description {
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.mode-features {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 25px;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+.feature i {
+    color: var(--success-color);
+    margin-right: 8px;
+    font-size: 0.8rem;
+}
+
+.btn-lg {
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    width: 100%;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .composition-modes {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .mode-card {
+        padding: 20px;
+    }
+}
