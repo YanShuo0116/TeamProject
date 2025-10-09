@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI翻譯功能Beta版</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/translator.css') }}">
+</head>
+<body class="dark-mode">
+    <!-- 載入動畫 -->
+    <div class="loading-screen">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height: 30px; margin-right: 8px;">
+                
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="vocabDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-book"></i> 單字卡
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="vocabDropdown">
+                            <a class="dropdown-item" href="/vocabulary_learning/1200">國小1200基礎單字</a>
+                            <a class="dropdown-item" href="/custom_vocabulary">自訂單字卡</a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/material_practice"><i class="fas fa-book-reader"></i> 教材練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/new_we"><i class="fas fa-users"></i> 關於我們</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+                    </li>
+                </ul>
+                <!-- 口音切換器會由 global_accent_switch.js 自動添加到這裡 -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="main-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <h1 class="page-title">AI翻譯Beta</h1>
+                    <div class="translator-container">
+                        <form id="translate-form">
+                            <div class="input-group">
+                                <input type="text" id="word-input" name="word" class="form-control" placeholder="請輸入英文單字" required>
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="submit" id="translate-btn">
+                                        <i class="fas fa-language"></i> AI翻譯
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- 口音切換器 -->
+                        <div class="accent-switch-container">
+                            <div class="accent-option active" id="americanAccent">
+                                <i class="fas fa-flag-usa"></i> 美式口音
+                            </div>
+                            <div class="accent-option" id="britishAccent">
+                                <i class="fas fa-flag"></i> 英式口音
+                            </div>
+                        </div>
+
+                        <div class="loading-spinner" id="loading" style="display: none;">
+                            <div class="spinner"></div>
+                            <p id="loading-message">載入中...</p>
+                        </div>
+
+                        <div class="result-container" id="result-container" style="display: none;">
+                            <!-- 翻譯結果將由JavaScript動態生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/translator.js') }}"></script>
+</body>
+</html>

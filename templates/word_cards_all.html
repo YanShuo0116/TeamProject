@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國小1200單字學習</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/elementary_english.css') }}">
+    <style>
+        .theme-section {
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .theme-header {
+            cursor: pointer;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            font-size: 1.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+        .theme-header:hover {
+            background-color: #0056b3;
+        }
+        .day-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+            display: none; /* Hidden by default */
+        }
+        .day-list.active {
+            display: block;
+        }
+        .day-item {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .day-item:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .flashcard-modal .modal-content {
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            border-radius: 15px;
+            border: none;
+        }
+        .flashcard-modal .modal-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .flashcard-modal .modal-footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .flashcard-modal .close {
+            color: var(--text-light);
+            opacity: 1;
+        }
+        .flashcard-modal .modal-title {
+            color: var(--primary-color);
+        }
+        .flashcard-container-modal {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50vh;
+            position: relative;
+            overflow: hidden;
+        }
+        .flashcard-item {
+            width: 90%;
+            max-width: 400px;
+            height: 100%;
+            background: var(--card-bg-dark);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .flashcard-item.active {
+            transform: translateX(0) rotateY(0);
+            opacity: 1;
+            z-index: 1;
+        }
+        .flashcard-item.prev {
+            transform: translateX(-100%) rotateY(10deg);
+            opacity: 0;
+            z-index: 0;
+        }
+        .flashcard-item.next {
+            transform: translateX(100%) rotateY(-10deg);
+            opacity: 0;
+            z-index: 0;
+        }
+        .flashcard-item img {
+            max-width: 90%;
+            max-height: 150px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            object-fit: contain;
+        }
+        .flashcard-item h2 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        .flashcard-item p {
+            font-size: 1.5rem;
+            color: var(--text-light);
+        }
+        .modal-navigation-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .modal-nav-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: background-color 0.3s;
+        }
+        .modal-nav-btn:hover {
+            background-color: #0056b3;
+        }
+        .audio-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+        .audio-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot"></i> AI 英文學習
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/we">關於我們</a>
+                    </li>
+                    <li class="nav-item">
+                        <div class="theme-switch-wrapper">
+                            <label class="theme-switch" for="checkbox">
+                                <input type="checkbox" id="checkbox" />
+                                <div class="slider round">
+                                    <i class="fas fa-sun"></i>
+                                    <i class="fas fa-moon"></i>
+                                </div>
+                            </label>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <h1 class="page-title">國小1200單字學習</h1>
+            <div class="translator-container">
+                {% for theme_data in word_data %}
+                    {% if theme_data.type == 'theme' %}
+                        <div class="theme-section">
+                            <div class="theme-header" onclick="toggleDayList(this)">
+                                <h2>{{ theme_data.name }}</h2>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <ul class="day-list">
+                                {% for day_data in theme_data.days %}
+                                    <li class="day-item" onclick="openFlashcardModal('{{ theme_data.name }}', '{{ day_data.name }}', {{ day_data.flashcards | tojson }})">
+                                        <span>{{ day_data.name }}</span>
+                                        <i class="fas fa-arrow-right"></i>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Flashcard Modal -->
+    <div class="modal fade flashcard-modal" id="flashcardModal" tabindex="-1" role="dialog" aria-labelledby="flashcardModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="flashcardModalLabel"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="flashcard-container-modal">
+                        <!-- Flashcards will be loaded here by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="modal-navigation-buttons">
+                        <button class="modal-nav-btn" id="prevCardBtn"><i class="fas fa-arrow-left"></i> 上一個</button>
+                        <button class="modal-nav-btn" id="nextCardBtn">下一個 <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        const themeSwitch = document.getElementById('checkbox');
+        themeSwitch.addEventListener('change', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+
+        function toggleDayList(element) {
+            const dayList = element.nextElementSibling;
+            const icon = element.querySelector('i');
+            dayList.classList.toggle('active');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        let currentFlashcards = [];
+        let currentFlashcardIndex = 0;
+
+        function openFlashcardModal(themeName, dayName, flashcardsData) {
+            currentFlashcards = flashcardsData;
+            currentFlashcardIndex = 0;
+
+            const modalTitle = document.getElementById('flashcardModalLabel');
+            modalTitle.textContent = `${themeName} - ${dayName} 單字卡`;
+
+            loadFlashcardsIntoModal();
+            $('#flashcardModal').modal('show');
+        }
+
+        function loadFlashcardsIntoModal() {
+            const container = document.querySelector('.flashcard-container-modal');
+            container.innerHTML = ''; // Clear previous cards
+
+            currentFlashcards.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('flashcard-item');
+                if (index === currentFlashcardIndex) {
+                    cardElement.classList.add('active');
+                } else if (index < currentFlashcardIndex) {
+                    cardElement.classList.add('prev');
+                } else {
+                    cardElement.classList.add('next');
+                }
+                cardElement.setAttribute('data-index', index);
+
+                cardElement.innerHTML = `
+                    <img src="${card.image}" alt="${card.english}">
+                    <h2>${card.english}</h2>
+                    <p>${card.chinese}</p>
+                    <button class="audio-btn" onclick="playAudio('${card.english}')"><i class="fas fa-volume-up"></i> 播放</button>
+                `;
+                container.appendChild(cardElement);
+            });
+            updateNavigationButtons();
+        }
+
+        function showFlashcard(index) {
+            const cards = document.querySelectorAll('.flashcard-item');
+            cards.forEach((card, i) => {
+                card.classList.remove('active', 'prev', 'next');
+                if (i === index) {
+                    card.classList.add('active');
+                } else if (i < index) {
+                    card.classList.add('prev');
+                } else {
+                    card.classList.add('next');
+                }
+            });
+            currentFlashcardIndex = index;
+            updateNavigationButtons();
+        }
+
+        function nextFlashcard() {
+            if (currentFlashcardIndex < currentFlashcards.length - 1) {
+                showFlashcard(currentFlashcardIndex + 1);
+            }
+        }
+
+        function prevFlashcard() {
+            if (currentFlashcardIndex > 0) {
+                showFlashcard(currentFlashcardIndex - 1);
+            }
+        }
+
+        function updateNavigationButtons() {
+            document.getElementById('prevCardBtn').disabled = currentFlashcardIndex === 0;
+            document.getElementById('nextCardBtn').disabled = currentFlashcardIndex === currentFlashcards.length - 1;
+        }
+
+        document.getElementById('prevCardBtn').addEventListener('click', prevFlashcard);
+        document.getElementById('nextCardBtn').addEventListener('click', nextFlashcard);
+
+        function playAudio(word) {
+            fetch(`/play-word-audio?word=${word}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    } else {
+                        throw new Error('音檔播放失敗');
+                    }
+                })
+                .then(blob => {
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                })
+                .catch(error => {
+                    console.error('音檔播放錯誤:', error);
+                    alert('音檔播放失敗，請稍後再試。');
+                });
+        }
+    </script>
+</body>
+</html>

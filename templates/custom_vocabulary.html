@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自訂單字卡</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vocabulary_learning.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom_vocabulary.css') }}">
+</head>
+<body class="dark-mode">
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height: 30px; margin-right: 8px;">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="vocabDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-book"></i> 單字卡
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="vocabDropdown">
+                            <a class="dropdown-item" href="/vocabulary_learning/1200">國小1200基礎單字</a>
+                            <a class="dropdown-item active" href="/custom_vocabulary">自訂單字卡</a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/material_practice"><i class="fas fa-book-reader"></i> 教材練習</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/new_we"><i class="fas fa-users"></i> 關於我們</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="main-content">
+        <div class="container">
+            <h1 class="page-title">自訂單字練習</h1>
+            <!-- 載入指示器 -->
+            <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                <div class="spinner"></div>
+                <p>載入中...</p>
+            </div>
+
+            <!-- 單字本選擇區塊 -->
+            <div id="bookSelectionSection">
+                <h1 class="page-title">我的單字本</h1>
+                <div class="create-book-form mb-4 d-flex justify-content-center">
+                    <div class="input-group" style="max-width: 50%;">
+                        <input type="text" id="newBookName" class="form-control" placeholder="輸入新單字本名稱...">
+                        <button class="btn btn-primary" id="createBookBtn">
+                            <i class="fas fa-plus"></i> 建立
+                        </button>
+                        <button class="btn btn-info ms-2" id="openAiGenerateModalBtn" style="background: linear-gradient(45deg, #2196f3, #e91e63); border: none;">
+                            <i class="fas fa-magic"></i> AI 生成單字本
+                        </button>
+                    </div>
+                </div>
+                <div class="row" id="bookCardsContainer">
+                    <!-- 單字本卡片將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+                
+            
+            <!-- 單字卡片學習區塊 (預設隱藏) -->
+            <div id="wordCardSection" style="display: none;">
+                <div class="word-card-header">
+                    <button class="btn btn-secondary mb-3" id="backToBooksBtn"><i class="fas fa-arrow-left"></i> 返回單字本列表</button>
+                    <h3 class="section-title" id="currentBookTitle"></h3>
+                    <button class="btn btn-primary mb-3" id="addWordBtn"><i class="fas fa-plus"></i> 新增單字</button>
+                </div>
+                
+                <div class="word-card-container">
+                    <div class="word-card" id="wordCard" style="display: none;">
+                        <div class="card-face card-front">
+                            <img src="" alt="Word Image" class="word-image" id="wordImage">
+                            <div class="word-text" id="englishWord"></div>
+                            <i class="fas fa-volume-up audio-icon" id="playAudio"></i>
+                        </div>
+                        <div class="card-face card-back">
+                            <div class="chinese-text" id="chineseWord"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn" id="prevWord"><i class="fas fa-arrow-left"></i> 上一個</button>
+                    <button class="control-btn" id="pronunciationPracticeBtn"><i class="fas fa-microphone"></i> 發音練習</button>
+                    <button class="control-btn" id="flipCard"><i class="fas fa-sync-alt"></i> 翻轉</button>
+                    <button class="control-btn" id="deepLearningBtn"><i class="fas fa-search"></i> 深入了解</button>
+                    <button class="control-btn" id="nextWord">下一個 <i class="fas fa-arrow-right"></i></button>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar">0/0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增單字 Modal -->
+    <div class="modal fade" id="addWordModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增單字</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addWordForm">
+                        <div class="mb-3">
+                            <label for="englishWordInput" class="form-label">英文單字</label>
+                            <input type="text" class="form-control" id="englishWordInput" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chineseWordInput" class="form-label">中文翻譯 (可選)</label>
+                            <input type="text" class="form-control" id="chineseWordInput">
+                            <div class="form-text">若留空，將由 AI 自動翻譯。</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveWordBtn">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- AI 生成單字本 Modal -->
+    <div class="modal fade" id="aiGenerateModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-magic"></i> AI 生成單字本</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="aiBookName" class="form-label">新單字本名稱</label>
+                        <input type="text" class="form-control" id="aiBookName" placeholder="例如：新聞文章、課文重點...">
+                        <div class="form-text text-info">
+                            <i class="fas fa-info-circle"></i> AI 將根據內容豐富度生成 5-15 個適合的單字
+                        </div>
+                    </div>
+                    
+                    <nav>
+                        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                            <button class="nav-link active" id="nav-upload-tab" data-bs-toggle="tab" data-bs-target="#nav-upload" type="button" role="tab">上傳檔案</button>
+                            <button class="nav-link" id="nav-paste-tab" data-bs-toggle="tab" data-bs-target="#nav-paste" type="button" role="tab">貼上文字</button>
+                        </div>
+                    </nav>
+                    <div class="tab-content" id="nav-tabContent" style="padding: 1rem; border: 1px solid #495057; border-top: none; border-radius: 0 0 0.25rem 0.25rem;">
+                        <div class="tab-pane fade show active" id="nav-upload" role="tabpanel">
+                            <p class="text-muted small">
+                                支援 .txt 和 .pdf 檔案。AI 會分析內容並提取 5-15 個適合的英文單字。
+                            </p>
+                            <input type="file" class="form-control" id="aiFileInputModal" accept=".txt,.pdf">
+                        </div>
+                        <div class="tab-pane fade" id="nav-paste" role="tabpanel">
+                            <p class="text-muted small">
+                                貼上任何英文文章、新聞或課文內容，AI 會自動提取重要單字。
+                            </p>
+                            <textarea class="form-control" id="aiPastedText" rows="8" placeholder="將文字內容貼在此處..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmAiGenerateBtn">
+                        <i class="fas fa-cogs"></i> 開始生成
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom_vocabulary.js') }}"></script>
+</body>
+</html>

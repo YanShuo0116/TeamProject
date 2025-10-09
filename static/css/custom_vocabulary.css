@@ -1,0 +1,78 @@
+/* 卡片上方的功能列（返回/標題/新增單字）間距微調 */
+.word-card-header {
+    margin-bottom: 1.5rem;
+}
+/* === 修正自訂頁面圖片/單字/喇叭置中偏移問題 === */
+#wordCardSection .word-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+#wordCardSection .card-face {
+    display: flex;
+        flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#wordCardSection .word-image {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 15px;
+    max-width: 90%;
+    max-height: 150px;
+    object-fit: contain;
+}
+
+#wordCardSection .word-text {
+    text-align: center !important;
+    margin-bottom: 15px;
+}
+
+#wordCardSection .audio-icon {
+    display: block !important;
+    margin-top: 15px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+#wordCardSection .controls {
+    justify-content: center;
+}
+
+/* 單字本名稱樣式（對齊 1200 人物名稱位置與風格） */
+#wordCardSection #currentBookTitle {
+    margin-top: -10px; /* 與主標題距離微調 */
+    margin-bottom: 10px;
+    font-size: 1.8rem; /* 放大字體 */
+    color: var(--primary-color); /* 改成藍色 */
+    text-align: center;
+    opacity: 0.9;
+    font-weight: 700;
+}
+
+/* === 指定輕微左移 0.5 公分（僅自訂頁面）=== */
+#wordCardSection #currentBookTitle,
+#wordCardSection .word-image,
+#wordCardSection .word-text,
+#wordCardSection .audio-icon {
+    transform: translateX(-0.5cm) !important;
+}
+
+/* 將自訂頁面的喇叭圖示上移 0.2 公分（保留水平位移） */
+#wordCardSection .card-front .audio-icon {
+    transform: translateX(-0.5cm) translateY(-0.2cm) !important;
+}
+
+/* 調整卡片背面的中文翻譯位置，與正面元素對齊 */
+#wordCardSection .card-back .chinese-text {
+    text-align: center !important;
+    transform: translateX(0.6cm) translateY(-0.5cm) !important; 
+    margin-top: 0 !important;
+}
+
+

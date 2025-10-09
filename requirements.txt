@@ -1,0 +1,23 @@
+Flask==3.1.0
+Flask-Cors==5.0.0
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.1.1
+python-dotenv==1.0.0
+pyngrok==7.2.2
+google-generativeai==0.8.3
+gTTS==2.5.4
+pandas==2.2.3
+# LangChain and RAG dependencies
+langchain==0.3.26
+langchain-google-genai==2.0.10
+langchain-community==0.3.27
+chromadb==1.1.0
+pypdf==5.7.0
+PyMuPDF==1.26.4
+# Speech and Audio dependencies
+SpeechRecognition==3.10.0
+assemblyai==0.42.0
+pydub==0.25.1
+# pexels-api-py is not in the freeze list, keeping it as is
+pexels-api-py==0.0.5
+langchain-huggingface

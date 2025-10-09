@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>語音評測系統</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global_navbar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vocabulary_learning.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/voice.css') }}">
+</head>
+<body class="dark-mode">
+  <!-- 導航欄 -->
+  <nav class="navbar navbar-expand-lg fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height: 30px; margin-right: 8px;"></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/"><i class="fas fa-home"></i> 首頁</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/translator"><i class="fas fa-language"></i> 翻譯機</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/composition"><i class="fas fa-pen-fancy"></i> 作文助手</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="vocabDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-book"></i> 單字卡
+            </a>
+            <div class="dropdown-menu" aria-labelledby="vocabDropdown">
+                <a class="dropdown-item" href="/vocabulary_learning/1200">國小1200基礎單字</a>
+                <a class="dropdown-item" href="/custom_vocabulary">自訂單字卡</a>
+            </div>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/speaking_practice"><i class="fas fa-microphone"></i> 口說練習</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/material_practice"><i class="fas fa-book-reader"></i> 教材練習</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/new_we"><i class="fas fa-users"></i> 關於我們</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/ai-teacher"><i class="fas fa-chalkboard-teacher"></i> AI 英文老師</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="container">
+      <h1 class="page-title">語音評測系統</h1>
+      <div class="voice-eval-card">
+        <input type="text" id="reference" class="form-control mb-3"/><br/>
+        <div class="controls">
+          <button class="control-btn" onclick="startRecording()"><i class="fas fa-microphone"></i> 開始錄音</button>
+          <button class="control-btn" onclick="stopRecording()"><i class="fas fa-stop"></i> 停止錄音</button>
+        </div>
+        <p id="status" class="mt-3"></p>
+        <p id="result" class="mt-2"></p>
+        <audio id="audioPlayer" controls style="display:none; margin-top: 1rem;"></audio>
+      </div>
+      <div style="display: flex; justify-content: center;">
+        <button class="btn btn-secondary back-to-vocab-btn" onclick="history.back();">
+          <i class="fas fa-arrow-left"></i> 返回單字學習
+        </button>
+      </div>      
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='js/global_navbar.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/voice.js') }}"></script>
+</body>
+</html> 
