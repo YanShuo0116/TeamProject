@@ -824,6 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 顯示測驗結果
     function showQuizResults(result) {
+        console.log("Final quiz result received from server:", result);
         const quizContainer = document.getElementById('quizContainer');
         const completionTime = Math.floor(result.completion_time / 60);
         

@@ -20,6 +20,7 @@ links.forEach(link => {
 const container = document.getElementById("starsContainer");
 
 function createStar() {
+    if (!container) return; // Prevent error on pages without starsContainer
     const star = document.createElement("div");
     star.classList.add("star");
     star.style.left = Math.random() * 100 + "vw";

@@ -26,6 +26,7 @@ class SpeakingPractice {
         this.audioChunks = [];
         this.usedScenarios = new Set(); // 追蹤已使用的情境
         this.questionCount = 0; // 問題計數器
+        this.lastIOSTranscript = null;
         
         this.init();
     }
@@ -232,8 +233,6 @@ class SpeakingPractice {
         }
 
         this.currentTopicId = topicId;
-        
-        // 顯示載入指示器
         this.showLoading(true);
         
         try {
@@ -296,7 +295,6 @@ class SpeakingPractice {
         }
 
         this.currentTopicId = 'custom';
-        
         this.showLoading(true);
         
         try {
@@ -588,17 +586,38 @@ class SpeakingPractice {
     }
 
     async setupAudioRecording() {
+        // No more special iOS path. All devices use this standard MediaRecorder setup.
         try {
+            console.log('Attempting to get media with video and audio permissions...');
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
-                    autoGainControl: true,
-                    sampleRate: 44100
-                }
+                    autoGainControl: true
+                },
+                video: true // Hail Mary: Requesting video as well, as a workaround for some iOS versions.
             });
+
+            // We don't need the video track, stop it immediately.
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                console.log('Video track acquired, stopping it immediately.');
+                videoTrack.stop();
+            }
+
             this.audioStream = stream;
             console.log('麥克風權限已獲得');
+
+            // Add a handler to the track to catch unexpected endings.
+            const audioTrack = this.audioStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.onended = () => {
+                    console.error('Audio track ended unexpectedly.');
+                    if (this.isIOS()) {
+                        showErrorModal('ios ipad語音功能開發中 請在android windows mac繼續使用');
+                    }
+                };
+            }
             
             // 檢查瀏覽器支援的音檔格式
             this.checkAudioSupport();
@@ -609,13 +628,28 @@ class SpeakingPractice {
         }
     }
 
+    // 🔧 新增：檢測是否為 iOS
+    isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+
     checkAudioSupport() {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
 
-        // iOS 優先使用 audio/mp4，其他系統優先使用 audio/webm
-        const testTypes = isIOS 
-            ? ['audio/mp4', 'audio/webm', 'audio/wav'] 
-            : ['audio/webm', 'audio/mp4', 'audio/wav'];
+        // 針對不同平台優化音頻格式選擇
+        let testTypes;
+        if (isIOS || isSafari) {
+            // Safari 和 iOS 優先使用 mp4
+            testTypes = ['audio/mp4', 'audio/wav', 'audio/webm'];
+        } else if (isAndroid) {
+            // Android 優先使用 webm
+            testTypes = ['audio/webm', 'audio/mp4', 'audio/wav'];
+        } else {
+            // 桌面版瀏覽器
+            testTypes = ['audio/webm', 'audio/mp4', 'audio/wav'];
+        }
         
         let supportedMimeType = null;
         for (const type of testTypes) {
@@ -625,31 +659,62 @@ class SpeakingPractice {
             }
         }
         
-        this.supportedMimeType = supportedMimeType || 'audio/webm'; // 預設值
-        console.log(`[Audio Check] Is iOS: ${isIOS}, Selected MIME Type: ${this.supportedMimeType}`);
+        this.supportedMimeType = supportedMimeType || 'audio/wav'; // 改為更兼容的預設值
+        console.log(`[Audio Check] Platform: ${isIOS ? 'iOS' : isSafari ? 'Safari' : isAndroid ? 'Android' : 'Desktop'}, Selected MIME Type: ${this.supportedMimeType}`);
     }
 
     showMicrophoneError(error) {
         let message = '需要麥克風權限才能進行口說練習。';
+        let suggestion = '';
         
         switch(error.name) {
             case 'NotAllowedError':
-                message = '請允許麥克風權限，然後重新整理頁面。';
+                message = '請允許麥克風權限。';
+                suggestion = '在手機上，請點擊網址列的麥克風圖示並選擇「允許」。';
                 break;
             case 'NotFoundError':
-                message = '找不到麥克風設備，請檢查您的設備。';
+                message = '找不到麥克風設備。';
+                suggestion = '請檢查您的設備是否有麥克風，或嘗試重新整理頁面。';
                 break;
             case 'NotReadableError':
-                message = '麥克風被其他應用程式佔用，請關閉其他應用程式後重試。';
+                message = '麥克風被其他應用程式佔用。';
+                suggestion = '請關閉其他使用麥克風的應用程式後重試。';
+                break;
+            case 'OverconstrainedError':
+                message = '麥克風設定不支援。';
+                suggestion = '您的設備可能不支援所需的音頻設定，請嘗試重新整理頁面。';
                 break;
             default:
                 message = `麥克風錯誤: ${error.message}`;
+                suggestion = '請嘗試重新整理頁面或使用其他瀏覽器。';
         }
         
-        showErrorModal(message);
+        const fullMessage = `${message}\n\n${suggestion}`;
+        showErrorModal(fullMessage);
+    }
+
+    releaseMicrophone() {
+        if (this.audioStream) {
+            console.log('Releasing microphone stream to ensure a fresh one for the next use.');
+            this.audioStream.getTracks().forEach(track => track.stop());
+            this.audioStream = null;
+        }
+    }
+
+    // 🔧 新增：正確的麥克風資源管理
+    releaseMicrophoneOnExit() {
+        // 只在真正需要時才釋放麥克風（如頁面卸載、會話結束）
+        if (this.audioStream) {
+            this.audioStream.getTracks().forEach(track => track.stop());
+            this.audioStream = null;
+            console.log('Microphone stream released on exit.');
+        }
     }
 
     startRecording() {
+        // The special path for iOS using webkitSpeechRecognition has been removed due to persistent, unresolvable errors.
+        // iOS will now use the standard MediaRecorder API, same as other platforms.
+
         if (!this.audioStream) {
             this.setupAudioRecording().then(() => {
                 if (this.audioStream) {
@@ -774,6 +839,9 @@ class SpeakingPractice {
             clearInterval(this.recordingTimer);
             this.recordingTimer = null;
         }
+
+        // Release the microphone to ensure a fresh stream for the next recording.
+        this.releaseMicrophone();
     }
 
     stopRecording() {
@@ -799,11 +867,25 @@ class SpeakingPractice {
             URL.revokeObjectURL(document.getElementById('userAudio').src);
             this.currentAudioBlob = null;
         }
+        // Clear iOS transcript
+        this.lastIOSTranscript = null;
         
         this.resetRecordingUI();
     }
 
     async submitAudio() {
+        // Handle iOS transcript submission
+        if (this.isIOS() && this.lastIOSTranscript) {
+            this.addMessage('user', `"${this.lastIOSTranscript}"`, '');
+            this.evaluateUserResponse(this.lastIOSTranscript);
+            this.lastIOSTranscript = null; // Clear after submission
+            
+            // Hide submission buttons and reset
+            document.getElementById('audioPlayback').style.display = 'none';
+            this.resetRecordingUI();
+            return;
+        }
+
         if (!this.currentAudioBlob) {
             alert('沒有錄音可以提交');
             return;
@@ -844,8 +926,8 @@ class SpeakingPractice {
                 this.currentUserAudioUrl = data.audio_url;
                 this.currentAudioFilename = data.audio_filename;
                 
-                // 直接開始語音識別，不顯示中間步驟
-                this.processUserAudio();
+                // 🔧 修復：直接使用音頻blob進行語音轉文字，不依賴服務器文件
+                this.processUserAudioDirect();
                 
                 console.log('音檔上傳成功:', data.audio_filename);
                 
@@ -862,12 +944,9 @@ class SpeakingPractice {
             alert(`提交失敗: ${error.message}`);
         } finally {
             this.resetRecordingUI();
-            // 釋放麥克風資源，確保下次可以重新獲取
-            if (this.audioStream) {
-                this.audioStream.getTracks().forEach(track => track.stop());
-                this.audioStream = null;
-                console.log('Audio stream stopped and released.');
-            }
+            // 🔧 修復：保持麥克風連接，避免手機版權限問題
+            // 只在會話結束時才釋放麥克風資源
+            console.log('Audio processing completed, keeping microphone stream active for mobile compatibility.');
         }
     }
 
@@ -1018,6 +1097,69 @@ class SpeakingPractice {
             document.getElementById('nextQuestionBtn').style.display = 'inline-block';
             document.getElementById('endSessionBtn').style.display = 'inline-block';
         }, 2000);
+    }
+
+    // 🔧 新方法：直接使用音頻blob進行語音轉文字
+    async processUserAudioDirect() {
+        if (!this.currentAudioBlob) {
+            console.error('沒有音檔可以處理');
+            this.updateLastUserMessage('❌ 沒有音檔可以處理', 0);
+            return;
+        }
+
+        try {
+            this.updateLastUserMessage('🎯 正在識別語音...', 0);
+            
+            // 準備表單數據，直接發送音頻進行語音轉文字
+            const formData = new FormData();
+            formData.append('audio', this.currentAudioBlob, 'recording.wav');
+            formData.append('session_id', this.currentSessionId);
+            formData.append('exchange_id', this.currentExchangeId);
+
+            // 調用語音處理API
+            const response = await fetch('/api/speaking/process_audio', {
+                method: 'POST',
+                body: formData
+            });
+
+            const parsed = await parseJsonSafely(response);
+            if (parsed.nonJson) {
+                console.error('處理語音回傳非JSON:', parsed.text);
+                this.updateLastUserMessage('❌ 語音處理失敗', 0);
+                return;
+            }
+            const result = parsed.data;
+
+            if (result.success) {
+                const transcription = result.transcription || '無法識別語音內容';
+                const confidence = result.confidence || 0;
+                
+                this.updateLastUserMessage(transcription, confidence);
+                
+                // 自動進行AI評估
+                setTimeout(() => {
+                    this.evaluateUserResponse(transcription);
+                }, 500);
+                
+            } else if (result.redirect) {
+                alert(result.message);
+                window.location.href = result.redirect;
+            } else {
+                throw new Error(result.error || '語音處理失敗');
+            }
+            
+        } catch (error) {
+            console.error('處理語音失敗:', error);
+            this.updateLastUserMessage('❌ 語音識別失敗，請重新錄音', 0);
+            
+            // 提示重新錄音
+            setTimeout(() => {
+                this.addMessage('ai', '抱歉，我無法清楚聽到您的回答。請重新錄音試試。', 'Sorry, I couldn\'t hear your answer clearly. Please try recording again.');
+                this.playAudio('Sorry, I couldn\'t hear your answer clearly. Please try recording again.');
+            }, 1000);
+        } finally {
+            this.showLoading(false);
+        }
     }
 
     async processUserAudio() {
@@ -1324,6 +1466,26 @@ class SpeakingPractice {
 let speakingPractice;
 document.addEventListener('DOMContentLoaded', () => {
     speakingPractice = new SpeakingPractice();
+
+    // iOS Audio Unlock: Must be done on the first user gesture.
+    const unlockAudio = () => {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        // Play a silent buffer to fully unlock the audio session
+        const buffer = audioContext.createBuffer(1, 1, 22050);
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start(0);
+        console.log('iOS Audio Context Unlocked.');
+        // Remove listeners so this only runs once
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
     
     // 監聽全域口音變更事件
     window.addEventListener('accentChanged', function(event) {

@@ -41,10 +41,44 @@ function formatSimilarity(sim) {
 window.startRecording = function() {
   if (isRecording) return;
 
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  // 🔧 iOS 特殊處理：使用語音識別
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS && window.iOSSpeechHandler && window.iOSSpeechHandler.isSupported()) {
+    return startiOSRecording();
+  }
+
+  // 🔧 修復：改進手機版兼容性
+  const audioConstraints = {
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: 44100
+    }
+  };
+
+  navigator.mediaDevices.getUserMedia(audioConstraints).then(stream => {
     statusEl.textContent = "🎙️ 錄音中...";
 
-    mediaRecorder = new MediaRecorder(stream);
+    // 🔧 修復：檢測支援的音頻格式
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    let mimeType = 'audio/webm';
+    if (isIOS || isSafari) {
+      if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+        mimeType = 'audio/wav';
+      }
+    }
+
+    try {
+      mediaRecorder = new MediaRecorder(stream, { mimeType });
+    } catch (e) {
+      // 如果指定格式不支援，使用預設格式
+      mediaRecorder = new MediaRecorder(stream);
+    }
+    
     audioChunks = [];
     isRecording = true;
 
@@ -53,13 +87,121 @@ window.startRecording = function() {
     };
 
     mediaRecorder.start();
+    console.log(`Recording started with MIME type: ${mimeType}`);
   }).catch(err => {
-    statusEl.textContent = "❌ 無法存取麥克風：" + err.message;
+    let errorMessage = "❌ 無法存取麥克風：" + err.message;
+    if (err.name === 'NotAllowedError') {
+      errorMessage = "❌ 請允許麥克風權限。在手機上，請點擊網址列的麥克風圖示並選擇「允許」。";
+    }
+    statusEl.textContent = errorMessage;
     console.error("getUserMedia error:", err);
   });
 }
 
+// 🔧 新增：iOS 專用錄音函數
+function startiOSRecording() {
+  // 設定 iOS 語音處理器回調
+  window.iOSSpeechHandler.setCallbacks(
+    // onResult
+    (transcript, confidence) => {
+      console.log('🎤 iOS 語音識別結果:', transcript);
+      
+      // 模擬原有的處理流程
+      const reference = document.getElementById("reference").value || "";
+      
+      // 計算相似度
+      let similarity = 0;
+      if (reference && transcript) {
+        similarity = calculateSimilarity(reference.toLowerCase(), transcript.toLowerCase());
+      }
+      
+      // 顯示結果
+      resultEl.innerHTML = `
+        <div>
+          <p><strong>你說的是：</strong> ${transcript}</p>
+          <p><strong>參考答案：</strong> ${reference}</p>
+          <p><strong>相似度：</strong> ${(similarity * 100).toFixed(1)}%</p>
+          <p><strong>結果：</strong> ${similarity >= 0.3 ? '✅ 正確' : '❌ 有誤'}</p>
+        </div>
+      `;
+      
+      statusEl.textContent = "✅ iOS 語音識別完成";
+      isRecording = false;
+    },
+    // onError
+    (error) => {
+      statusEl.textContent = "❌ iOS 語音識別錯誤：" + error;
+      isRecording = false;
+    },
+    // onStatus
+    (status) => {
+      statusEl.textContent = status;
+    }
+  );
+
+  // 啟動語音識別
+  window.iOSSpeechHandler.startRecognition().then(success => {
+    if (success) {
+      isRecording = true;
+      statusEl.textContent = "🎤 iOS 語音識別中...";
+    } else {
+      statusEl.textContent = "❌ iOS 語音識別啟動失敗";
+    }
+  });
+}
+
+// 🔧 新增：簡單相似度計算
+function calculateSimilarity(str1, str2) {
+  if (!str1 || !str2) return 0;
+  if (str1 === str2) return 1;
+  
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 1;
+  
+  const editDistance = levenshteinDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
 window.stopRecording = function() {
+  // 🔧 iOS 特殊處理
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS && window.iOSSpeechHandler) {
+    window.iOSSpeechHandler.stopRecognition();
+    isRecording = false;
+    statusEl.textContent = "🛑 iOS 語音識別已停止";
+    return;
+  }
+
   if (!isRecording || !mediaRecorder) return;
 
   mediaRecorder.onstop = async () => {

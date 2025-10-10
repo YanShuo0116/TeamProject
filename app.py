@@ -1497,17 +1497,20 @@ def speech_to_text_from_memory(audio_data, filename):
 
             if not transcript.text or not transcript.text.strip():
                 print("⚠️ AssemblyAI 未識別到語音內容")
-                return {
-                    'success': False,
-                    'error': '無法識別語音內容，請確保說話清晰並重新錄音'
-                }
+                # 🔧 修復：對於短音頻，使用本地 fallback 而不是直接失敗
+                return fallback_speech_recognition_from_memory(audio_data, filename)
 
             confidence = transcript.confidence if hasattr(transcript, 'confidence') and transcript.confidence else 0.9
             print(f"✅ AssemblyAI 識別成功: {transcript.text}")
             print(f"📊 置信度: {confidence}")
             
-            # 後處理：如果是短錄音，嘗試提取單字
-            processed_text = post_process_single_word(transcript.text.strip(), filename)
+            # 🔧 修復：只對單字卡發音進行後處理，口說練習保持原文
+            if 'voice' in filename or len(transcript.text.split()) == 1:
+                # 單字卡發音或已經是單字的情況
+                processed_text = post_process_single_word(transcript.text.strip(), filename)
+            else:
+                # 口說練習保持完整句子
+                processed_text = transcript.text.strip()
             
             return {
                 'success': True,
@@ -1553,10 +1556,8 @@ def speech_to_text(audio_file_path):
 
         if not transcript.text or not transcript.text.strip():
             print("⚠️ AssemblyAI 未識別到語音內容")
-            return {
-                'success': False,
-                'error': '無法識別語音內容，請確保說話清晰並重新錄音'
-            }
+            # 🔧 修復：使用本地 fallback 處理短音頻
+            return fallback_speech_recognition(audio_file_path)
 
         confidence = transcript.confidence if hasattr(transcript, 'confidence') and transcript.confidence else 0.9
         print(f"✅ AssemblyAI 識別成功: {transcript.text}")
@@ -2738,6 +2739,10 @@ def complete_quiz(quiz_id):
     quiz_attempt = QuizAttempt.query.filter_by(id=quiz_id, user_id=current_user.id).first_or_404()
     if quiz_attempt.status == 'completed':
         return jsonify({'error': 'Quiz already completed'}), 400
+
+    # Recalculate the score from question records to ensure accuracy
+    correct_answers_count = QuizQuestion.query.filter_by(attempt_id=quiz_id, is_correct=True).count()
+    quiz_attempt.correct_answers = correct_answers_count
 
     quiz_attempt.status = 'completed'
     quiz_attempt.completed_at = datetime.now()
