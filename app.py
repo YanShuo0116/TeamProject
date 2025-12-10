@@ -3373,6 +3373,45 @@ def composition_teacher():
     """引導式學習作文老師頁面"""
     return render_template('composition_teacher.html')
 
+def get_elementary_vocabulary(content, k=50):
+    """
+    從國小1200單字向量資料庫中檢索相關詞彙
+    
+    Args:
+        content (str): 作文內容或查詢主題
+        k (int): 返回的詞彙數量
+    
+    Returns:
+        list: 相關詞彙列表，格式為 ["word (中文)", ...]
+    """
+    try:
+        # 確保內容不為空
+        if not content or not content.strip():
+            return []
+        
+        from database_manager import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        vectordb = db_manager.load_vector_db("國小1200單字")
+        
+        # 進行相似度查詢
+        results = vectordb.similarity_search(content, k=k)
+        
+        # 提取詞彙，去重
+        vocabulary_set = set()
+        for doc in results:
+            if doc.page_content:  # 確保內容不為空
+                vocabulary_set.add(doc.page_content)
+        
+        return list(vocabulary_set)
+        
+    except Exception as e:
+        # 記錄錯誤但不影響正常功能
+        print(f"Error retrieving elementary vocabulary: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
 @app.route("/api/composition_feedback", methods=["POST"])
 @login_required
 def composition_feedback():
@@ -3386,10 +3425,34 @@ def composition_feedback():
         conclusion = data.get('conclusion', '').strip()
         current_section = data.get('current_section', 'all')
         user_question = data.get('user_question', '').strip()
+        mode = data.get('mode', 'normal')  # 新增：獲取模式參數
         
         # 建構給AI的prompt
         prompt_parts = []
-        prompt_parts.append("你是一位專業的英文作文老師，請根據學生的作文內容和問題提供建設性的回饋。")
+        
+        # 根據模式選擇不同的系統提示
+        if mode == 'elementary':
+            prompt_parts.append("你是一位專業的國小英文作文老師，正在指導學生使用基礎1200單字來撰寫英文作文,如果學生用超過課綱單字可以給他鼓勵“說程度不錯之類的”。")
+            
+            # 獲取相關的國小單字
+            # 組合所有作文內容作為查詢依據
+            all_content = " ".join([introduction, body, conclusion, user_question])
+            if all_content.strip():
+                elementary_vocab = get_elementary_vocabulary(all_content, k=50)
+                if elementary_vocab:
+                    vocab_text = "、".join(elementary_vocab[:30])  # 只顯示前30個
+                    prompt_parts.append(f"\n【可用的基礎單字參考】:\n{vocab_text}\n")
+            
+            prompt_parts.append("""
+【教學原則】:
+1. 優先使用基礎1200單字庫中的詞彙給予建議
+2. 保持引導式教學風格，循序漸進地協助學生
+3. 鼓勵學生用簡單清楚的句子表達想法
+4. 提供範例時，確保使用的詞彙都在基礎單字範圍內
+5. 用淺顯易懂的方式解釋文法概念
+""")
+        else:
+            prompt_parts.append("你是一位專業的英文作文老師，請根據學生的作文內容和問題提供建設性的回饋。")
         
         # 添加學生的作文內容（總是包含所有段落）
         if introduction:
@@ -3440,9 +3503,10 @@ def composition_feedback():
         
         # 記錄學習活動
         try:
+            activity_type = 'composition_teacher_elementary' if mode == 'elementary' else 'composition_teacher'
             record = LearningRecord(
                 user_id=current_user.id,
-                activity_type='composition_teacher',
+                activity_type=activity_type,
                 content=f"問題: {user_question[:100]}..."
             )
             db.session.add(record)
@@ -3453,7 +3517,8 @@ def composition_feedback():
         return jsonify({
             'success': True,
             'feedback': ai_response,
-            'question': user_question
+            'question': user_question,
+            'mode': mode  # 返回當前模式
         })
         
     except Exception as e:

@@ -7,11 +7,11 @@ from config import settings
 from utils import get_loader
 
 class DatabaseManager:
-    def __init__(self, config_path=None):
-        if config_path is None:
-            # ✅ 相對於當前檔案的路徑
-            config_path = os.path.join(os.path.dirname(__file__), "..", "config", "database_config.json")
-
+    def __init__(self):
+        # 使用正確的相對路徑
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(base_dir, "config", "database_config.json")
+        
         with open(config_path, "r", encoding="utf-8") as f:
             self.db_config = json.load(f)
 

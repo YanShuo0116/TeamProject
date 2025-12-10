@@ -172,7 +172,7 @@ class APIKeyManager:
         }
 
 class LightweightGeminiManager:
-    def __init__(self, model_name: str = 'gemini-2.5-flash-lite-preview-06-17'):
+    def __init__(self, model_name: str = 'gemini-2.5-flash-lite'):
         self.model_name = model_name
         self.key_manager = APIKeyManager()
         self.current_model = None
@@ -272,7 +272,7 @@ def generate_content_safe(prompt: str) -> str:
 # 兼容性包裝類
 class SafeGenerativeModel:
     """兼容原有代碼的包裝類"""
-    def __init__(self, model_name: str = 'gemini-2.5-flash-lite-preview-06-17'):
+    def __init__(self, model_name: str = 'gemini-2.5-flash-lite'):
         self.manager = LightweightGeminiManager(model_name)
     
     def generate_content(self, prompt: str):

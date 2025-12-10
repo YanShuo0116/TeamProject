@@ -23,5 +23,9 @@
   "英文作業": {
     "path": "/Volumes/我的Ｍ．２ssd 1/程式/my_project_v0.4/國小英文教材/英文作業.pdf",
     "vector_path": "/Volumes/我的Ｍ．２ssd 1/程式/my_project_v0.4/vector_db/英文作業"
+  },
+  "國小1200單字": {
+    "path": "國小英文教材/基礎1200單字/國小1200基礎單字每日學習表.csv",
+    "vector_path": "chroma_db/國小1200單字"
   }
 }

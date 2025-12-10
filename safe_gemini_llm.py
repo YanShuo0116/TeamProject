@@ -7,7 +7,7 @@ class GeminiLLM(LLM, BaseModel):
 
     def _call(self, prompt: str, **kwargs) -> str:
         genai.configure(api_key=self.api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash-lite-preview-06-17")  # ✅ 正確名稱
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")  # ✅ 更新為可用模型
         response = model.generate_content(prompt)
         return response.text.strip()
 

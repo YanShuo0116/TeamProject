@@ -1,9 +1,12 @@
 // static/js/composition_teacher.js
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 當前活躍的段落
     let currentSection = 'introduction';
-    
+
+    // 當前模式狀態 (normal / elementary)
+    let currentMode = 'normal';
+
     // 寫作提示內容
     const writingTips = {
         introduction: {
@@ -24,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `
         },
         body: {
-            title: "內文寫作技巧", 
+            title: "內文寫作技巧",
             content: `
                 <div class="tip-item">
                     <h6><i class="fas fa-list"></i> 段落組織</h6>
@@ -61,22 +64,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化
     updateTeacherTips();
-    
+
     // 段落切換事件
     document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', function(e) {
+        tab.addEventListener('shown.bs.tab', function (e) {
             const targetId = e.target.getAttribute('data-bs-target');
             if (targetId === '#intro-panel') currentSection = 'introduction';
             else if (targetId === '#body-panel') currentSection = 'body';
             else if (targetId === '#conclusion-panel') currentSection = 'conclusion';
-            
+
             updateTeacherTips();
         });
     });
 
+    // Elementary Mode Switch
+    const modeSwitch = document.getElementById('elementaryModeSwitch');
+    const modeStatusBadge = document.getElementById('modeStatusBadge');
+
+    modeSwitch.addEventListener('change', function () {
+        if (this.checked) {
+            currentMode = 'elementary';
+            modeStatusBadge.textContent = '國小英文模式';
+            modeStatusBadge.classList.remove('bg-secondary');
+            modeStatusBadge.classList.add('bg-primary');
+        } else {
+            currentMode = 'normal';
+            modeStatusBadge.textContent = '正常模式';
+            modeStatusBadge.classList.remove('bg-primary');
+            modeStatusBadge.classList.add('bg-secondary');
+        }
+    });
+
     // 刷新AI建議按鈕
     document.getElementById('refresh-tips-btn').addEventListener('click', refreshAITips);
-    
+
     // 隨機題目按鈕
     document.getElementById('random-topic-btn').addEventListener('click', generateRandomTopic);
 
@@ -84,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateTeacherTips() {
         const tipsContent = document.getElementById('teacher-tips-content');
         const tips = writingTips[currentSection];
-        
+
         tipsContent.innerHTML = `
             <h6 class="text-primary">${tips.title}</h6>
             ${tips.content}
@@ -93,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 快捷問題按鈕事件
     document.querySelectorAll('.quick-question-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const question = this.getAttribute('data-question');
             document.getElementById('user-question-input').value = question;
             askAI();
@@ -102,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 發送問題給AI
     document.getElementById('ask-ai-btn').addEventListener('click', askAI);
-    document.getElementById('user-question-input').addEventListener('keypress', function(e) {
+    document.getElementById('user-question-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             askAI();
         }
@@ -114,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function askAI() {
         const questionInput = document.getElementById('user-question-input');
         const question = questionInput.value.trim();
-        
+
         if (!question) {
             alert('請輸入問題');
             return;
@@ -122,13 +143,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 獲取所有段落內容
         const sections = getSelectedSections();
-        
+
         // 添加用戶消息到聊天記錄
         addChatMessage(question, 'user');
-        
+
         // 添加載入中消息
         const loadingMessageId = addChatMessage('AI老師正在思考中...', 'ai-loading');
-        
+
         // 清空輸入框
         questionInput.value = '';
 
@@ -143,26 +164,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: sections.body,
                 conclusion: sections.conclusion,
                 current_section: currentSection,
-                user_question: question + '（請使用繁體中文(英文輔助)，提供簡潔、條列式、有用的建議，將回覆限制在100字以內，並且不要使用任何"#","*"符號）'
+                user_question: question + '（請使用繁體中文(英文輔助)，提供簡潔、條列式、有用的建議，將回覆限制在100字以內，並且不要使用任何"#","*"符號）',
+                mode: currentMode  // 傳送當前模式
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            // 移除載入中消息
-            document.getElementById(loadingMessageId).remove();
-            
-            if (data.success) {
-                // 添加AI回應
-                addChatMessage(data.feedback, 'ai');
-            } else {
-                addChatMessage('抱歉，處理您的問題時發生錯誤：' + (data.message || '未知錯誤'), 'ai-error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById(loadingMessageId).remove();
-            addChatMessage('網路錯誤，請稍後再試', 'ai-error');
-        });
+            .then(response => response.json())
+            .then(data => {
+                // 移除載入中消息
+                document.getElementById(loadingMessageId).remove();
+
+                if (data.success) {
+                    // 添加AI回應
+                    addChatMessage(data.feedback, 'ai');
+                } else {
+                    addChatMessage('抱歉，處理您的問題時發生錯誤：' + (data.message || '未知錯誤'), 'ai-error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById(loadingMessageId).remove();
+                addChatMessage('網路錯誤，請稍後再試', 'ai-error');
+            });
     }
 
     function getSelectedSections() {
@@ -177,15 +199,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function addChatMessage(message, type) {
         const chatHistory = document.getElementById('chat-history');
         const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        
+
         const messageDiv = document.createElement('div');
         messageDiv.id = messageId;
         messageDiv.className = `chat-message chat-message-${type}`;
         messageDiv.textContent = message;
-        
+
         chatHistory.appendChild(messageDiv);
         chatHistory.scrollTop = chatHistory.scrollHeight;
-        
+
         return messageId;
     }
 
@@ -193,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function refreshAITips() {
         const sections = getSelectedSections();
         const currentContent = sections[currentSection];
-        
+
         if (!currentContent || currentContent.trim() === '') {
             alert('請先在當前段落撰寫一些內容，AI才能給出個人化建議');
             return;
@@ -214,26 +236,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: sections.body,
                 conclusion: sections.conclusion,
                 current_section: currentSection,
-                user_question: `請針對我的${getSectionName(currentSection)}段落，提供2-3個簡潔、條列式、有用的寫作建議。請用繁體中文回答(英文輔助)，將回覆限制在100字以內，不要有任何多餘的開頭或結語，並且不要使用任何"#","*"符號。`
+                user_question: `請針對我的${getSectionName(currentSection)}段落，提供2-3個簡潔、條列式、有用的寫作建議。請用繁體中文回答(英文輔助)，將回覆限制在100字以內，不要有任何多餘的開頭或結語，並且不要使用任何"#","*"符號。`,
+                mode: currentMode  // 傳送當前模式
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                tipsContent.innerHTML = `
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    tipsContent.innerHTML = `
                     <div class="ai-tip-response">
                         <h6 class="text-primary"><i class="fas fa-robot"></i> AI個人化建議</h6>
                         <div class="tip-content">${data.feedback.replace(/\n/g, '<br>')}</div>
                     </div>
                 `;
-            } else {
-                tipsContent.innerHTML = '<p class="text-danger">獲取AI建議失敗，請稍後再試</p>';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            tipsContent.innerHTML = '<p class="text-danger">網路錯誤，請稍後再試</p>';
-        });
+                } else {
+                    tipsContent.innerHTML = '<p class="text-danger">獲取AI建議失敗，請稍後再試</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                tipsContent.innerHTML = '<p class="text-danger">網路錯誤，請稍後再試</p>';
+            });
     }
 
     function generateRandomTopic() {
@@ -254,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "My Hobbies and Interests",
             "My Future School Life"
         ];
-        
+
         const randomTopic = topics[Math.floor(Math.random() * topics.length)];
         document.getElementById('composition-title').value = randomTopic;
     }
@@ -272,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function saveComposition() {
         const title = document.getElementById('composition-title').value.trim();
         const sections = getSelectedSections();
-        
+
         if (!title) {
             alert('請輸入作文標題');
             return;
@@ -312,42 +335,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: sections.body,
                 conclusion: sections.conclusion,
                 current_section: 'all',
-                user_question: '你是一位專業的英文作文老師。請用繁體中文，以條列式對我的整篇作文進行批改，提供簡潔但具體的評語。將總回覆限制在250字以內，不要使用任何"#","*"符號。請包含：1. 優點。2. 主要建議。3. 語法或詞彙修正。'
+                user_question: '你是一位專業的英文作文老師。請用繁體中文，以條列式對我的整篇作文進行批改，提供簡潔但具體的評語。將總回覆限制在250字以內，不要使用任何"#","*"符號。請包含：1. 優點。2. 主要建議。3. 語法或詞彙修正。',
+                mode: currentMode  // 傳送當前模式
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const aiEvaluation = data.feedback;
-                
-                // 發送儲存請求
-                return fetch('/composition/save_teacher', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        title: title,
-                        content: fullContent,
-                        sections: sections,
-                        ai_evaluation: aiEvaluation
-                    })
-                });
-            } else {
-                throw new Error('AI批改失敗');
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            saveBtn.innerHTML = originalText;
-            saveBtn.disabled = false;
-            
-            if (data.success && data.composition_id) {
-                // 直接重定向到新的作文查看頁面
-                window.location.href = '/composition/view/' + data.composition_id;
-            } else {
-                alert('儲存失敗：' + (data.message || '未知錯誤'));
-            }
-        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const aiEvaluation = data.feedback;
+
+                    // 發送儲存請求
+                    return fetch('/composition/save_teacher', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            content: fullContent,
+                            sections: sections,
+                            ai_evaluation: aiEvaluation
+                        })
+                    });
+                } else {
+                    throw new Error('AI批改失敗');
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+
+                if (data.success && data.composition_id) {
+                    // 直接重定向到新的作文查看頁面
+                    window.location.href = '/composition/view/' + data.composition_id;
+                } else {
+                    alert('儲存失敗：' + (data.message || '未知錯誤'));
+                }
+            })
     }
 });
